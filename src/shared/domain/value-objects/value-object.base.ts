@@ -1,0 +1,23 @@
+/**
+ * Base de los Value Objects: inmutables e iguales por valor (no por identidad).
+ * Las subclases construyen con props ya validadas; aquí solo se congelan y se
+ * compara estructuralmente. Para VOs de valores primitivos la comparación por
+ * serialización es suficiente y predecible.
+ */
+export abstract class ValueObject<T extends object> {
+  protected readonly props: Readonly<T>;
+
+  protected constructor(props: T) {
+    this.props = Object.freeze({ ...props });
+  }
+
+  public equals(other?: ValueObject<T>): boolean {
+    if (other === null || other === undefined) {
+      return false;
+    }
+    if (other.constructor !== this.constructor) {
+      return false;
+    }
+    return JSON.stringify(this.props) === JSON.stringify(other.props);
+  }
+}

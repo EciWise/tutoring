@@ -1,6 +1,10 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  runtime      = "nodejs"
+  // NestJS compila a CommonJS; sin esto el generador emite ESM (import.meta)
+  // y la salida no es requerible en el build. No afecta el esquema ni la BD.
+  moduleFormat = "cjs"
 }
 
 datasource db {
