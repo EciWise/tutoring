@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id    Int     @default(autoincrement()) @id
+  email String  @unique
+  name  String?
+  posts Post[]
+}
+
+model Post {
+  id        Int      @default(autoincrement()) @id
+  title     String
+  content   String?
+  published Boolean? @default(false)
+  author    User?    @relation(fields: [authorId], references: [id])
+  authorId  Int?
+}
+
+// ============================================================================
+//  ENUMS
+// ============================================================================
+
+enum Modalidad {
+  VIRTUAL
+  PRESENCIAL
+
+  @@map("modalidad")
+}
+
+enum EstadoTutoria {
+  PROGRAMADA
+  REALIZADA
+  CANCELADA
+
+  @@map("estado_tutoria")
+}
+
+enum EstadoAsistencia {
+  CONFIRMADA
+  ASISTIDA
+  INASISTIDA
+  CANCELADA
+
+  @@map("estado_asistencia")
+}
+
+enum RolUsuario {
+  estudiante
+  tutor
+  admin
+
+  @@map("rol_usuario")
+}
+
+// ============================================================================
+//  ESPEJO DE USUARIOS (captura perezosa desde JWT)
+//  Poblada por interceptor en cada request autenticada.
+// ============================================================================
+
+model UsuarioLocal {
+  userId      String     @id @map("user_id") @db.Uuid
+  nombre      String     @db.VarChar(150)
+  apellido    String     @db.VarChar(150)
+  email       String?    @db.VarChar(254)
+  rol         RolUsuario
+  ultimaSync  DateTime   @default(now()) @map("ultima_sync") @db.Timestamptz(6)
+  creadoEn    DateTime   @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  @@index([rol], map: "idx_usuario_local_rol")
+  @@map("usuario_local")
+}
+
+// ============================================================================
+//  CATÁLOGOS INTERNOS
+// ============================================================================
+
+model Materia {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo    String   @unique @db.VarChar(20)
+  nombre    String   @db.VarChar(150)
+  activa    Boolean  @default(true)
+  creadoEn  DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  tutorMaterias    TutorMateria[]
+  disponibilidades DisponibilidadTutor[]
+  tutorias         Tutoria[]
+
+  @@map("materia")
+}
+
+model TutorMateria {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  materiaId     String   @map("materia_id") @db.Uuid
+  tutorUserId   String   @map("tutor_user_id") @db.Uuid    // ref. externa (auth)
+  autorizada    Boolean  @default(true)
+  creadoEn      DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  materia       Materia  @relation(fields: [materiaId], references: [id], onDelete: Restrict)
+
+  @@unique([materiaId, tutorUserId], map: "uq_tutor_materia")
+  @@index([tutorUserId], map: "idx_tutor_materia_tutor")
+  @@map("tutor_materia")
+}
+
+model Sala {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo    String   @unique @db.VarChar(20)
+  edificio  String?  @db.VarChar(80)
+  capacidad Int?
+  activa    Boolean  @default(true)
+  creadoEn  DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  disponibilidades DisponibilidadTutor[]
+  tutorias         Tutoria[]
+
+  @@map("sala")
+}
+
+model FranjaHoraria {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  diaSemana   Int      @map("dia_semana") @db.SmallInt   // 1=Lun ... 5=Vie (validado en dominio)
+  horaInicio  DateTime @map("hora_inicio") @db.Time(0)
+  horaFin     DateTime @map("hora_fin") @db.Time(0)      // hora_inicio + 90 min (validado en dominio)
+  orden       Int      @db.SmallInt
+  activa      Boolean  @default(true)
+  creadoEn    DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  disponibilidades DisponibilidadTutor[]
+  tutorias         Tutoria[]
+
+  @@unique([diaSemana, horaInicio], map: "uq_franja_dia_hora")
+  @@unique([diaSemana, orden], map: "uq_franja_dia_orden")
+  @@map("franja_horaria")
+}
+
+// ============================================================================
+//  DISPONIBILIDAD RECURRENTE (plantilla declarada por el tutor)
+//  Materializada en `Tutoria` por job acotado (ventana móvil).
+// ============================================================================
+
+model DisponibilidadTutor {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tutorUserId     String   @map("tutor_user_id") @db.Uuid    // ref. externa
+  franjaId        String   @map("franja_id") @db.Uuid
+  materiaId       String   @map("materia_id") @db.Uuid
+  salaId          String?  @map("sala_id") @db.Uuid
+  modalidad       Modalidad
+  cuposMaximos    Int      @map("cupos_maximos")
+  vigenciaDesde   DateTime @map("vigencia_desde") @db.Date
+  vigenciaHasta   DateTime @map("vigencia_hasta") @db.Date
+  activa          Boolean  @default(true)
+  creadoEn        DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn   DateTime @default(now()) @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  franja          FranjaHoraria @relation(fields: [franjaId], references: [id], onDelete: Restrict)
+  materia         Materia       @relation(fields: [materiaId], references: [id], onDelete: Restrict)
+  sala            Sala?         @relation(fields: [salaId], references: [id], onDelete: SetNull)
+  tutorias        Tutoria[]
+
+  // RN-02: un tutor no puede tener dos disponibilidades para la misma franja.
+  // Cambio de semestre = actualizar vigencia, NO crear nueva fila.
+  @@unique([tutorUserId, franjaId], map: "uq_disp_tutor_franja")
+  @@index([tutorUserId], map: "idx_disp_tutor")
+  @@index([materiaId], map: "idx_disp_materia")
+  @@map("disponibilidad_tutor")
+}
+
+// ============================================================================
+//  TUTORÍA (Aggregate Root) + PARTICIPANTE (entidad hija)
+// ============================================================================
+
+model Tutoria {
+  id                  String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tutorUserId         String        @map("tutor_user_id") @db.Uuid       // ref. externa
+  franjaId            String        @map("franja_id") @db.Uuid
+  fecha               DateTime      @db.Date
+  materiaId           String        @map("materia_id") @db.Uuid
+  salaId              String?       @map("sala_id") @db.Uuid
+  disponibilidadId    String?       @map("disponibilidad_id") @db.Uuid
+
+  modalidad           Modalidad
+  estado              EstadoTutoria @default(PROGRAMADA)
+  cuposMaximos        Int           @map("cupos_maximos")
+  cuposOcupados       Int           @default(0) @map("cupos_ocupados")
+  enlaceVirtual       String?       @map("enlace_virtual") @db.VarChar(500)
+  temaGeneral         String?       @map("tema_general")
+  motivoCancelacion   String?       @map("motivo_cancelacion")
+
+  creadoEn            DateTime      @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn       DateTime      @default(now()) @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  franja              FranjaHoraria         @relation(fields: [franjaId], references: [id], onDelete: Restrict)
+  materia             Materia               @relation(fields: [materiaId], references: [id], onDelete: Restrict)
+  sala                Sala?                 @relation(fields: [salaId], references: [id], onDelete: SetNull)
+  disponibilidad      DisponibilidadTutor?  @relation(fields: [disponibilidadId], references: [id], onDelete: SetNull)
+  participantes       Participante[]
+  evaluaciones        EvaluacionTutoria[]
+
+  // RN-02: una tutoría única por (tutor, franja, fecha)
+  @@unique([tutorUserId, franjaId, fecha], map: "uq_tutor_franja_fecha")
+  @@index([tutorUserId, fecha], map: "idx_tutoria_tutor_fecha")
+  @@index([materiaId, modalidad, fecha, estado], map: "idx_tutoria_busqueda")  // RF-04
+  @@index([disponibilidadId], map: "idx_tutoria_disp")
+  @@map("tutoria")
+}
+
+model Participante {
+  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tutoriaId            String           @map("tutoria_id") @db.Uuid
+  estudianteUserId     String           @map("estudiante_user_id") @db.Uuid   // ref. externa
+  temaEspecifico       String?          @map("tema_especifico") @db.VarChar(200)
+  descripcionDudas     String?          @map("descripcion_dudas")
+  estadoAsistencia     EstadoAsistencia @default(CONFIRMADA) @map("estado_asistencia")
+  reservadoEn          DateTime         @default(now()) @map("reservado_en") @db.Timestamptz(6)
+  canceladoEn          DateTime?        @map("cancelado_en") @db.Timestamptz(6)
+  motivoCancelacion    String?          @map("motivo_cancelacion")
+
+  tutoria              Tutoria                  @relation(fields: [tutoriaId], references: [id], onDelete: Cascade)
+  evaluacionEmitida    EvaluacionTutoria?
+  evaluacionRecibida   EvaluacionParticipante?
+
+  @@unique([tutoriaId, estudianteUserId], map: "uq_participante_tutoria")
+  @@index([estudianteUserId], map: "idx_participante_estudiante")
+  @@map("participante")
+}
+
+// ============================================================================
+//  EVALUACIONES (calificación única 1-5 — MVP simplificado)
+//  Rango 1-5 validado en VO Calificacion + DTO con class-validator
+// ============================================================================
+
+model EvaluacionTutoria {            // RF-13: estudiante -> monitor
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tutoriaId       String   @map("tutoria_id") @db.Uuid
+  participanteId  String   @unique @map("participante_id") @db.Uuid       // RN-07
+  calificacion    Int      @db.SmallInt
+  comentario      String?
+  creadoEn        DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  tutoria         Tutoria       @relation(fields: [tutoriaId], references: [id], onDelete: Restrict)
+  participante    Participante  @relation(fields: [participanteId], references: [id], onDelete: Cascade)
+
+  @@map("evaluacion_tutoria")
+}
+
+model EvaluacionParticipante {       // RF-22: monitor -> estudiante
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  participanteId  String   @unique @map("participante_id") @db.Uuid
+  calificacion    Int      @db.SmallInt
+  comentario      String?
+  creadoEn        DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  participante    Participante  @relation(fields: [participanteId], references: [id], onDelete: Cascade)
+
+  @@map("evaluacion_participante")
+}
+
+// ============================================================================
+//  PROYECCIONES DE REPUTACIÓN (CQRS, materializadas por eventos de dominio)
+// ============================================================================
+
+model ReputacionTutor {              // RF-15
+  tutorUserId           String   @id @map("tutor_user_id") @db.Uuid    // ref. externa
+  calificacionPromedio  Decimal  @default(0) @map("calificacion_promedio") @db.Decimal(3, 2)
+  tutoriasRealizadas    Int      @default(0) @map("tutorias_realizadas")
+  comentariosRecibidos  Int      @default(0) @map("comentarios_recibidos")
+  actualizadoEn         DateTime @default(now()) @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  @@map("reputacion_tutor")
+}
+
+model ReputacionEstudiante {         // RF-23
+  estudianteUserId      String   @id @map("estudiante_user_id") @db.Uuid    // ref. externa
+  calificacionPromedio  Decimal  @default(0) @map("calificacion_promedio") @db.Decimal(3, 2)
+  tutoriasAsistidas     Int      @default(0) @map("tutorias_asistidas")
+  tutoriasInasistidas   Int      @default(0) @map("tutorias_inasistidas")
+  comentariosRecibidos  Int      @default(0) @map("comentarios_recibidos")
+  actualizadoEn         DateTime @default(now()) @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  @@map("reputacion_estudiante")
+}
