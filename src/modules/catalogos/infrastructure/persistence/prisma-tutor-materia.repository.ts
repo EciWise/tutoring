@@ -3,12 +3,25 @@ import type { TutorMateria as TutorMateriaRow } from '../../../../shared/infrast
 import { mapUniqueViolation } from '../../../../shared/infrastructure/prisma/prisma-error.util';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { TutorMateria } from '../../domain/entities/tutor-materia.entity';
+import { ITutorMateriaConsultaPort } from '../../domain/ports/outbound/tutor-materia-consulta.port';
 import { ITutorMateriaRepository } from '../../domain/ports/outbound/tutor-materia.repository.port';
 
-/** Adapter Prisma del puerto `ITutorMateriaRepository`. */
+/** Adapter Prisma de los puertos `ITutorMateriaRepository` e `ITutorMateriaConsultaPort`. */
 @Injectable()
-export class PrismaTutorMateriaRepository implements ITutorMateriaRepository {
+export class PrismaTutorMateriaRepository
+  implements ITutorMateriaRepository, ITutorMateriaConsultaPort
+{
   constructor(private readonly prisma: PrismaService) {}
+
+  async estaAutorizada(
+    tutorUserId: string,
+    materiaId: string,
+  ): Promise<boolean> {
+    const count = await this.prisma.tutorMateria.count({
+      where: { tutorUserId, materiaId, autorizada: true },
+    });
+    return count > 0;
+  }
 
   async guardar(tm: TutorMateria): Promise<void> {
     try {
