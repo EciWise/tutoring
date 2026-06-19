@@ -1,12 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  MaxLength,
-  Min,
-} from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CrearSalaDto {
   @ApiProperty({
@@ -24,10 +17,4 @@ export class CrearSalaDto {
   @IsString()
   @MaxLength(80)
   edificio?: string;
-
-  @ApiPropertyOptional({ example: 30, minimum: 1 })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  capacidad?: number;
 }

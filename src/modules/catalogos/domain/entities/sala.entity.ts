@@ -5,7 +5,6 @@ interface SalaProps {
   id: string;
   codigo: string;
   edificio: string | null;
-  capacidad: number | null;
   activa: boolean;
   creadoEn: Date;
 }
@@ -17,16 +16,11 @@ const MAX_EDIFICIO = 80;
 export class Sala {
   private constructor(private readonly props: SalaProps) {}
 
-  public static crear(
-    codigo: string,
-    edificio?: string | null,
-    capacidad?: number | null,
-  ): Sala {
+  public static crear(codigo: string, edificio?: string | null): Sala {
     return new Sala({
       id: randomUUID(),
       codigo: Sala.validarCodigo(codigo),
       edificio: Sala.validarEdificio(edificio),
-      capacidad: Sala.validarCapacidad(capacidad),
       activa: true,
       creadoEn: new Date(),
     });
@@ -65,18 +59,6 @@ export class Sala {
     return limpio;
   }
 
-  private static validarCapacidad(capacidad?: number | null): number | null {
-    if (capacidad === undefined || capacidad === null) {
-      return null;
-    }
-    if (!Number.isInteger(capacidad) || capacidad < 1) {
-      throw new ValidationError(
-        `La capacidad debe ser un entero positivo; se recibió: ${capacidad}`,
-      );
-    }
-    return capacidad;
-  }
-
   public get id(): string {
     return this.props.id;
   }
@@ -87,10 +69,6 @@ export class Sala {
 
   public get edificio(): string | null {
     return this.props.edificio;
-  }
-
-  public get capacidad(): number | null {
-    return this.props.capacidad;
   }
 
   public get activa(): boolean {

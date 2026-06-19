@@ -15,9 +15,8 @@ export class CrearSalaUseCase {
   async ejecutar(input: {
     codigo: string;
     edificio?: string | null;
-    capacidad?: number | null;
   }): Promise<Sala> {
-    const sala = Sala.crear(input.codigo, input.edificio, input.capacidad);
+    const sala = Sala.crear(input.codigo, input.edificio);
     await this.repo.guardar(sala);
     return sala;
   }

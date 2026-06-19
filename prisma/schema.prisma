@@ -2,8 +2,6 @@ generator client {
   provider     = "prisma-client"
   output       = "../generated/prisma"
   runtime      = "nodejs"
-  // NestJS compila a CommonJS; sin esto el generador emite ESM (import.meta)
-  // y la salida no es requerible en el build. No afecta el esquema ni la BD.
   moduleFormat = "cjs"
 }
 
@@ -101,7 +99,6 @@ model Sala {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   codigo    String   @unique @db.VarChar(20)
   edificio  String?  @db.VarChar(80)
-  capacidad Int?
   activa    Boolean  @default(true)
   creadoEn  DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
 

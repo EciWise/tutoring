@@ -33,7 +33,6 @@ export class SalaResponseDto {
   @ApiProperty({ nullable: true, example: 'Bloque B' }) edificio!:
     | string
     | null;
-  @ApiProperty({ nullable: true, example: 30 }) capacidad!: number | null;
   @ApiProperty() activa!: boolean;
   @ApiProperty({ format: 'date-time' }) creadoEn!: string;
 
@@ -42,7 +41,6 @@ export class SalaResponseDto {
       id: s.id,
       codigo: s.codigo,
       edificio: s.edificio,
-      capacidad: s.capacidad,
       activa: s.activa,
       creadoEn: s.creadoEn.toISOString(),
     };

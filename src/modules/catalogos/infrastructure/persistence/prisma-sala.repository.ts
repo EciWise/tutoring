@@ -17,7 +17,6 @@ export class PrismaSalaRepository implements ISalaRepository {
           id: sala.id,
           codigo: sala.codigo,
           edificio: sala.edificio,
-          capacidad: sala.capacidad,
           activa: sala.activa,
         },
       });
@@ -41,7 +40,6 @@ export class PrismaSalaRepository implements ISalaRepository {
       id: row.id,
       codigo: row.codigo,
       edificio: row.edificio,
-      capacidad: row.capacidad,
       activa: row.activa,
       creadoEn: row.creadoEn,
     });
