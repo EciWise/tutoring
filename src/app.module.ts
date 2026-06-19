@@ -5,6 +5,7 @@ import { PrismaModule } from './shared/infrastructure/prisma/prisma.module';
 import { EventPublisherModule } from './shared/infrastructure/messaging/event-publisher.module';
 import { AuthModule } from './auth/auth.module';
 import { IdentidadModule } from './modules/identidad/identidad.module';
+import { CatalogosModule } from './modules/catalogos/catalogos.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -16,6 +17,7 @@ import { AppService } from './app.service';
     EventPublisherModule,
     AuthModule,
     IdentidadModule,
+    CatalogosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
