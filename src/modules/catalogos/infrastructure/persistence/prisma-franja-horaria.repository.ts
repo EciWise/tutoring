@@ -3,6 +3,10 @@ import type { FranjaHoraria as FranjaRow } from '../../../../shared/infrastructu
 import { mapUniqueViolation } from '../../../../shared/infrastructure/prisma/prisma-error.util';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { FranjaHoraria } from '../../domain/entities/franja-horaria.entity';
+import {
+  FranjaConsultaView,
+  IFranjaHorariaConsultaPort,
+} from '../../domain/ports/outbound/franja-horaria-consulta.port';
 import { IFranjaHorariaRepository } from '../../domain/ports/outbound/franja-horaria.repository.port';
 
 // ponytail: round-trip de @db.Time vía UTC sobre la época (1970-01-01); si algún
@@ -18,10 +22,20 @@ function deTime(date: Date): string {
   return `${hh}:${mm}`;
 }
 
-/** Adapter Prisma del puerto `IFranjaHorariaRepository`. */
+/** Adapter Prisma de los puertos `IFranjaHorariaRepository` e `IFranjaHorariaConsultaPort`. */
 @Injectable()
-export class PrismaFranjaHorariaRepository implements IFranjaHorariaRepository {
+export class PrismaFranjaHorariaRepository
+  implements IFranjaHorariaRepository, IFranjaHorariaConsultaPort
+{
   constructor(private readonly prisma: PrismaService) {}
+
+  async obtenerPorId(id: string): Promise<FranjaConsultaView | null> {
+    const row = await this.prisma.franjaHoraria.findUnique({
+      where: { id },
+      select: { id: true, diaSemana: true, activa: true },
+    });
+    return row ?? null;
+  }
 
   async guardar(franja: FranjaHoraria): Promise<void> {
     try {

@@ -2,32 +2,47 @@
 
 > Estado de avance por fases. Se **sobreescribe** cada fin de fase (no acumular).
 
-## Fase completada: Fase 2 — slice `catalogos` (primer slice vertical completo)
+## Fase completada: Fase 4 — slice `reservas` (corazón transaccional)
 
-Valida todo el stack end-to-end (dominio puro → puertos → casos de uso → adapters Prisma → controllers REST → módulo). Build limpio, **44 tests** en verde, lint limpio, e2e verificado contra Neon.
+Reservar / cancelar / reprogramar (estudiante) y cancelar la tutoría completa (tutor):
+RF-05/06/07/08 + RN-01/04/08/09. Build limpio, **89 tests / 23 suites**, lint limpio, y flujo
+end-to-end + **concurrencia real** verificados contra Neon.
 
-### Slices / componentes implementados
-- **`catalogos`**: `Materia`, `Sala`, `FranjaHoraria`, `TutorMateria`.
-  - VOs: `DiaSemana` (L-V), `RangoHorario` (90 min exactos).
-  - 10 casos de uso (CRUD + activar/desactivar materia + autorizar/desautorizar tutor-materia).
-  - 12 endpoints bajo `/catalogos` (JWT obligatorio; escrituras solo `admin`).
-- **Seed** (`prisma/seed.ts`, idempotente): 40 franjas (L-V × 8 bloques 07:00–19:00) + 33 salas (edificios A/B/C × salones 100–110, código `A-100`).
-- Reutilizados de Fase 0/1: `PrismaService`, `auth` (guards/decorators), errores de dominio + `DomainExceptionFilter`, `ValueObject` base.
+### Implementado (`src/modules/reservas/`)
+- **Dominio**: `Participante` (reservar→CONFIRMADA, cancelar(motivo)→CANCELADA), `exigirMotivo`
+  (RN-08), eventos `TutoriaReservada`/`ReservaCancelada`/`TutoriaCanceladaPorTutor`,
+  puerto `IReservaRepository` (operaciones transaccionales).
+- **Casos de uso**: `ReservarTutoria` (RN-01 traslape, RN-09 cupo, no doble inscripción),
+  `CancelarReserva`, `ReprogramarTutoria` (atómica), `CancelarTutoriaPorTutor` (autoriza dueño/admin).
+- **Infra**: `PrismaReservaRepository` con `$transaction` + `$executeRaw` (UPDATE condicional
+  `WHERE cupos_ocupados < cupos_maximos`); controller `POST /reservas`, `/:tutoriaId/cancelar`,
+  `/reprogramar`, `/cancelacion-tutoria`. Registrado en `app.module`.
+- **shared**: enum `EstadoAsistencia`.
 
-### Decisiones de esta sesión (las normativas ya están en CLAUDE.md)
-Movidas a CLAUDE.md por ser project-wide: inbound ports → casos de uso como clases inyectadas por clase (§3.3); id generado en dominio con `crypto.randomUUID()` + `crear`/`reconstituir` (§9); `P2002`→`ConflictError` vía `mapUniqueViolation` confiando en `@@unique` (§9); guards `JwtAuthGuard` a nivel clase + `RolesGuard`/`@Roles` por método en escrituras (§9); `migrate dev` NO regenera el cliente → `prisma generate` siempre (§8); DTO props con `!` e `import type` en params `@Inject` (§9).
+### Decisiones confirmadas con el usuario
+- **Atomicidad de cupos = transacción en `reservas`** (escribe `tutoria.cupos_ocupados`/`estado`
+  directamente vía SQL crudo; excepción documentada al ownership de slice, por atomicidad).
+- **Reprogramar = atómica** (todo-o-nada: si el destino está lleno, el origen queda intacto).
 
-Solo de esta fase (no normativas): toggles activar/desactivar y autorizar/desautorizar comparten un caso de uso parametrizado con 2 endpoints; `@db.Time` se mapea `"HH:MM"` ↔ `Date.UTC(1970,0,1,h,m)`; la lista de salas vive en el seed (dato de referencia), a diferencia de la grilla de franjas que es un invariante de dominio.
+### Notas / decisiones de diseño
+- **`Participante` vive en `reservas/domain`**; NO se añadieron `Tutoria.agregarParticipante/cancelar`
+  (el invariante RN-09 lo garantiza el UPDATE atómico, no un método en memoria).
+- **Reservar = reactivar-o-crear (`upsert`)**: la fila CANCELADA se conserva para historial
+  (RF-18), así que reservar de nuevo reusa esa fila sin violar la unicidad `(tutoria, estudiante)`.
+  (Bug encontrado y corregido en el e2e: el `create` chocaba con la fila cancelada.)
+- `ponytail:` la fuga de cupo solo es posible en un auto-doble-reserva concurrente del mismo
+  estudiante sobre la misma tutoría (RN-01 lo cubre en el caso secuencial); reconciliable si importa.
+- Sin migración: `participante` y `EstadoAsistencia` ya existían en el schema.
+- Deuda menor: datos de prueba (materias RSV/DEMO/DISP, disponibilidades, tutorías, participantes) en Neon.
 
-### Desviaciones del plan
-- Hubo que añadir un bloque `"ts-node": { transpileOnly, experimentalResolver }` a `tsconfig.json` para que el seed resuelva los imports `.js`→`.ts` del cliente Prisma generado.
-- `npx prisma generate` explícito tras `migrate dev` (el plan asumía que migrate lo hacía) — al eliminar `Sala.capacidad` el cliente quedó stale y el seed falló hasta regenerar.
-- Ajustes no anticipados para compilar bajo `strict`: `!` en DTOs e `import type` en params `@Inject`.
+### Verificación e2e ejecutada (contra Neon)
+reservar→cupo 0 · cancelar→cupo 1 · reservar de nuevo→201 · reprogramar→origen libre/destino ocupado ·
+traslape→422 · lleno→409 · **2 reservas en paralelo sobre cupos=1 → una 201 y una 409** ·
+tutor cancela→libera N + estado CANCELADA · otro tutor→422.
 
-## Pendientes — próxima fase (Fase 3: `disponibilidad` → job materialización → `tutorias`)
-- VOs compartidos aún no creados: `Cupos`, `RangoVigencia`, `Modalidad` (VO).
-- `DisponibilidadTutor` (agregado): `materializarEn(fecha)`, unicidad `(tutor, franja)` RN-02, coherencia modalidad-recurso.
-- Job de materialización (ventana móvil `MATERIALIZACION_VENTANA_SEMANAS`) → genera `Tutoria`.
-- `tutorias`: búsqueda/consulta de slots (índice `idx_tutoria_busqueda`).
-- Validar RN-03/RN-05 en publicación de disponibilidad usando `tutor_materia.autorizada` (ya soportado por `catalogos`).
-- Deuda menor: dato `DEMO<timestamp>` de prueba en `materia` (Neon) — borrar o ignorar.
+## Pendientes — próxima fase (Fase 5: `asistencia` → `evaluaciones`)
+- `asistencia` (RF-11/12): el tutor marca `Participante` ASISTIDA/INASISTIDA y observaciones;
+  marcar `Tutoria` REALIZADA (habilita evaluar, RN-06).
+- `evaluaciones` (RF-13/22): calificación única 1-5 (VO `Calificacion` ya existe) estudiante→tutor
+  y tutor→estudiante; unicidad por participante (RN-07); emite `TutoriaRealizada`/`EvaluacionRegistrada`.
+- (Luego) `reputacion` (proyección CQRS por eventos) → `historial`.

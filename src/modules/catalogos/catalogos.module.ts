@@ -10,9 +10,11 @@ import { ListarFranjasUseCase } from './application/use-cases/listar-franjas.use
 import { ListarMateriasDeTutorUseCase } from './application/use-cases/listar-materias-de-tutor.use-case';
 import { ListarMateriasUseCase } from './application/use-cases/listar-materias.use-case';
 import { ListarSalasUseCase } from './application/use-cases/listar-salas.use-case';
+import { FRANJA_HORARIA_CONSULTA } from './domain/ports/outbound/franja-horaria-consulta.port';
 import { FRANJA_HORARIA_REPOSITORY } from './domain/ports/outbound/franja-horaria.repository.port';
 import { MATERIA_REPOSITORY } from './domain/ports/outbound/materia.repository.port';
 import { SALA_REPOSITORY } from './domain/ports/outbound/sala.repository.port';
+import { TUTOR_MATERIA_CONSULTA } from './domain/ports/outbound/tutor-materia-consulta.port';
 import { TUTOR_MATERIA_REPOSITORY } from './domain/ports/outbound/tutor-materia.repository.port';
 import { FranjasController } from './infrastructure/http/controllers/franjas.controller';
 import { MateriasController } from './infrastructure/http/controllers/materias.controller';
@@ -47,16 +49,31 @@ import { PrismaTutorMateriaRepository } from './infrastructure/persistence/prism
     AsignarTutorMateriaUseCase,
     CambiarAutorizacionTutorMateriaUseCase,
     ListarMateriasDeTutorUseCase,
-    { provide: MATERIA_REPOSITORY, useClass: PrismaMateriaRepository },
-    { provide: SALA_REPOSITORY, useClass: PrismaSalaRepository },
+    // Adapters Prisma registrados como clase para poder ligar varios tokens
+    // (repositorio + puerto público de consulta) a una sola instancia.
+    PrismaMateriaRepository,
+    PrismaSalaRepository,
+    PrismaFranjaHorariaRepository,
+    PrismaTutorMateriaRepository,
+    { provide: MATERIA_REPOSITORY, useExisting: PrismaMateriaRepository },
+    { provide: SALA_REPOSITORY, useExisting: PrismaSalaRepository },
     {
       provide: FRANJA_HORARIA_REPOSITORY,
-      useClass: PrismaFranjaHorariaRepository,
+      useExisting: PrismaFranjaHorariaRepository,
+    },
+    {
+      provide: FRANJA_HORARIA_CONSULTA,
+      useExisting: PrismaFranjaHorariaRepository,
     },
     {
       provide: TUTOR_MATERIA_REPOSITORY,
-      useClass: PrismaTutorMateriaRepository,
+      useExisting: PrismaTutorMateriaRepository,
+    },
+    {
+      provide: TUTOR_MATERIA_CONSULTA,
+      useExisting: PrismaTutorMateriaRepository,
     },
   ],
+  exports: [TUTOR_MATERIA_CONSULTA, FRANJA_HORARIA_CONSULTA],
 })
 export class CatalogosModule {}
