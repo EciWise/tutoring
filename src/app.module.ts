@@ -9,6 +9,7 @@ import { IdentidadModule } from './modules/identidad/identidad.module';
 import { CatalogosModule } from './modules/catalogos/catalogos.module';
 import { TutoriasModule } from './modules/tutorias/tutorias.module';
 import { DisponibilidadModule } from './modules/disponibilidad/disponibilidad.module';
+import { ReservasModule } from './modules/reservas/reservas.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -24,6 +25,7 @@ import { AppService } from './app.service';
     CatalogosModule,
     TutoriasModule,
     DisponibilidadModule,
+    ReservasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
