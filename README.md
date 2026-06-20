@@ -209,5 +209,6 @@ Documentación viva en `/api/docs`. Todas las rutas requieren JWT; los roles ind
 | reservas | POST | `/reservas/cancelacion-tutoria` | tutor o admin |
 
 ## Licencia
-
+v 
 UNLICENSED — uso académico interno (Escuela Colombiana de Ingeniería Julio Garavito).
+  
