@@ -1,26 +1,12 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  runtime      = "nodejs"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
-}
-
-model User {
-  id    Int     @default(autoincrement()) @id
-  email String  @unique
-  name  String?
-  posts Post[]
-}
-
-model Post {
-  id        Int      @default(autoincrement()) @id
-  title     String
-  content   String?
-  published Boolean? @default(false)
-  author    User?    @relation(fields: [authorId], references: [id])
-  authorId  Int?
 }
 
 // ============================================================================
@@ -113,7 +99,6 @@ model Sala {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   codigo    String   @unique @db.VarChar(20)
   edificio  String?  @db.VarChar(80)
-  capacidad Int?
   activa    Boolean  @default(true)
   creadoEn  DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
 
