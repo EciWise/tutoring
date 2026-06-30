@@ -39,6 +39,23 @@ export class PrismaTutoriaRepository implements ITutoriaRepository {
     return count;
   }
 
+  async actualizarCuposFuturasPorDisponibilidad(
+    disponibilidadId: string,
+    cuposMaximos: number,
+    desde: Date,
+  ): Promise<number> {
+    const { count } = await this.prisma.tutoria.updateMany({
+      where: {
+        disponibilidadId,
+        estado: 'PROGRAMADA',
+        fecha: { gte: desde },
+        cuposOcupados: { lte: cuposMaximos },
+      },
+      data: { cuposMaximos },
+    });
+    return count;
+  }
+
   async guardar(tutoria: Tutoria): Promise<void> {
     try {
       await this.prisma.tutoria.create({
