@@ -14,12 +14,14 @@ import { FRANJA_HORARIA_CONSULTA } from './domain/ports/outbound/franja-horaria-
 import { FRANJA_HORARIA_REPOSITORY } from './domain/ports/outbound/franja-horaria.repository.port';
 import { MATERIA_REPOSITORY } from './domain/ports/outbound/materia.repository.port';
 import { SALA_REPOSITORY } from './domain/ports/outbound/sala.repository.port';
+import { SUBJECT_EVENT_PUBLISHER } from './domain/ports/outbound/subject-event-publisher.port';
 import { TUTOR_MATERIA_CONSULTA } from './domain/ports/outbound/tutor-materia-consulta.port';
 import { TUTOR_MATERIA_REPOSITORY } from './domain/ports/outbound/tutor-materia.repository.port';
 import { FranjasController } from './infrastructure/http/controllers/franjas.controller';
 import { MateriasController } from './infrastructure/http/controllers/materias.controller';
 import { SalasController } from './infrastructure/http/controllers/salas.controller';
 import { TutorMateriasController } from './infrastructure/http/controllers/tutor-materias.controller';
+import { RabbitMQSubjectPublisher } from './infrastructure/messaging/rabbitmq-subject-publisher';
 import { PrismaFranjaHorariaRepository } from './infrastructure/persistence/prisma-franja-horaria.repository';
 import { PrismaMateriaRepository } from './infrastructure/persistence/prisma-materia.repository';
 import { PrismaSalaRepository } from './infrastructure/persistence/prisma-sala.repository';
@@ -27,8 +29,9 @@ import { PrismaTutorMateriaRepository } from './infrastructure/persistence/prism
 
 /**
  * Slice `catalogos`: materias, salas, franjas horarias y asignaciones
- * tutor-materia. Primer slice vertical completo. `PrismaService` es global
- * (vía `PrismaModule`); `AuthModule` aporta los guards de las escrituras.
+ * tutor-materia. `PrismaService` es global (vía `PrismaModule`); `AuthModule`
+ * aporta los guards de las escrituras. `RabbitMQSubjectPublisher` publica
+ * eventos `subject.*` para que community sincronice su copia local de `materia`.
  */
 @Module({
   imports: [AuthModule],
@@ -49,30 +52,20 @@ import { PrismaTutorMateriaRepository } from './infrastructure/persistence/prism
     AsignarTutorMateriaUseCase,
     CambiarAutorizacionTutorMateriaUseCase,
     ListarMateriasDeTutorUseCase,
-    // Adapters Prisma registrados como clase para poder ligar varios tokens
-    // (repositorio + puerto público de consulta) a una sola instancia.
+    // Adapters Prisma: registrados como clase para ligar varios tokens a una sola instancia.
     PrismaMateriaRepository,
     PrismaSalaRepository,
     PrismaFranjaHorariaRepository,
     PrismaTutorMateriaRepository,
     { provide: MATERIA_REPOSITORY, useExisting: PrismaMateriaRepository },
     { provide: SALA_REPOSITORY, useExisting: PrismaSalaRepository },
-    {
-      provide: FRANJA_HORARIA_REPOSITORY,
-      useExisting: PrismaFranjaHorariaRepository,
-    },
-    {
-      provide: FRANJA_HORARIA_CONSULTA,
-      useExisting: PrismaFranjaHorariaRepository,
-    },
-    {
-      provide: TUTOR_MATERIA_REPOSITORY,
-      useExisting: PrismaTutorMateriaRepository,
-    },
-    {
-      provide: TUTOR_MATERIA_CONSULTA,
-      useExisting: PrismaTutorMateriaRepository,
-    },
+    { provide: FRANJA_HORARIA_REPOSITORY, useExisting: PrismaFranjaHorariaRepository },
+    { provide: FRANJA_HORARIA_CONSULTA, useExisting: PrismaFranjaHorariaRepository },
+    { provide: TUTOR_MATERIA_REPOSITORY, useExisting: PrismaTutorMateriaRepository },
+    { provide: TUTOR_MATERIA_CONSULTA, useExisting: PrismaTutorMateriaRepository },
+    // Adaptador RabbitMQ para publicar eventos de materias hacia community
+    RabbitMQSubjectPublisher,
+    { provide: SUBJECT_EVENT_PUBLISHER, useExisting: RabbitMQSubjectPublisher },
   ],
   exports: [TUTOR_MATERIA_CONSULTA, FRANJA_HORARIA_CONSULTA],
 })

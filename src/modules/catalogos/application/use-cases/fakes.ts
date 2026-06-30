@@ -1,6 +1,7 @@
 import { ConflictError } from '../../../../shared/domain/errors/domain-error';
 import { Materia } from '../../domain/entities/materia.entity';
 import { IMateriaRepository } from '../../domain/ports/outbound/materia.repository.port';
+import { ISubjectEventPublisher, SubjectEventPayload } from '../../domain/ports/outbound/subject-event-publisher.port';
 import { TutorMateria } from '../../domain/entities/tutor-materia.entity';
 import { ITutorMateriaRepository } from '../../domain/ports/outbound/tutor-materia.repository.port';
 
@@ -37,6 +38,23 @@ export class InMemoryMateriaRepository implements IMateriaRepository {
   listar(soloActivas?: boolean): Promise<Materia[]> {
     const todas = [...this.data.values()];
     return Promise.resolve(soloActivas ? todas.filter((m) => m.activa) : todas);
+  }
+}
+
+/** Publisher no-op para tests: registra las llamadas sin conectarse a RabbitMQ. */
+export class InMemorySubjectEventPublisher implements ISubjectEventPublisher {
+  readonly events: { type: string; payload: unknown }[] = [];
+
+  publishCreated(payload: SubjectEventPayload): void {
+    this.events.push({ type: 'subject.created', payload });
+  }
+
+  publishUpdated(payload: SubjectEventPayload): void {
+    this.events.push({ type: 'subject.updated', payload });
+  }
+
+  publishDeleted(id: string): void {
+    this.events.push({ type: 'subject.deleted', payload: { id } });
   }
 }
 

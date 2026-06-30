@@ -5,6 +5,10 @@ import {
   type IMateriaRepository,
   MATERIA_REPOSITORY,
 } from '../../domain/ports/outbound/materia.repository.port';
+import {
+  type ISubjectEventPublisher,
+  SUBJECT_EVENT_PUBLISHER,
+} from '../../domain/ports/outbound/subject-event-publisher.port';
 
 /** Activa o desactiva una materia (baja lógica). Sirve a dos endpoints REST. */
 @Injectable()
@@ -12,6 +16,8 @@ export class CambiarEstadoMateriaUseCase {
   constructor(
     @Inject(MATERIA_REPOSITORY)
     private readonly repo: IMateriaRepository,
+    @Inject(SUBJECT_EVENT_PUBLISHER)
+    private readonly eventPublisher: ISubjectEventPublisher,
   ) {}
 
   async ejecutar(id: string, activa: boolean): Promise<Materia> {
@@ -25,6 +31,7 @@ export class CambiarEstadoMateriaUseCase {
       materia.desactivar();
     }
     await this.repo.actualizar(materia);
+    this.eventPublisher.publishUpdated({ id: materia.id, codigo: materia.codigo, nombre: materia.nombre });
     return materia;
   }
 }

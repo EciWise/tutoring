@@ -5,6 +5,7 @@ import { CrearMateriaUseCase } from './crear-materia.use-case';
 import { ListarMateriasDeTutorUseCase } from './listar-materias-de-tutor.use-case';
 import {
   InMemoryMateriaRepository,
+  InMemorySubjectEventPublisher,
   InMemoryTutorMateriaRepository,
 } from './fakes';
 
@@ -14,10 +15,10 @@ describe('Casos de uso tutor-materia', () => {
   it('asigna una materia existente a un tutor y la lista', async () => {
     const materiaRepo = new InMemoryMateriaRepository();
     const tmRepo = new InMemoryTutorMateriaRepository();
-    const materia = await new CrearMateriaUseCase(materiaRepo).ejecutar({
-      codigo: 'FISI',
-      nombre: 'Física',
-    });
+    const materia = await new CrearMateriaUseCase(
+      materiaRepo,
+      new InMemorySubjectEventPublisher(),
+    ).ejecutar({ codigo: 'FISI', nombre: 'Física' });
 
     const asignacion = await new AsignarTutorMateriaUseCase(
       materiaRepo,
@@ -25,9 +26,7 @@ describe('Casos de uso tutor-materia', () => {
     ).ejecutar({ materiaId: materia.id, tutorUserId: TUTOR });
 
     expect(asignacion.autorizada).toBe(true);
-    const delTutor = await new ListarMateriasDeTutorUseCase(tmRepo).ejecutar(
-      TUTOR,
-    );
+    const delTutor = await new ListarMateriasDeTutorUseCase(tmRepo).ejecutar(TUTOR);
     expect(delTutor).toHaveLength(1);
     expect(delTutor[0].materiaId).toBe(materia.id);
   });
@@ -45,10 +44,10 @@ describe('Casos de uso tutor-materia', () => {
   it('desautoriza una asignación existente', async () => {
     const materiaRepo = new InMemoryMateriaRepository();
     const tmRepo = new InMemoryTutorMateriaRepository();
-    const materia = await new CrearMateriaUseCase(materiaRepo).ejecutar({
-      codigo: 'FISI',
-      nombre: 'Física',
-    });
+    const materia = await new CrearMateriaUseCase(
+      materiaRepo,
+      new InMemorySubjectEventPublisher(),
+    ).ejecutar({ codigo: 'FISI', nombre: 'Física' });
     const asignacion = await new AsignarTutorMateriaUseCase(
       materiaRepo,
       tmRepo,
