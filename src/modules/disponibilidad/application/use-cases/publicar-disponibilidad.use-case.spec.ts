@@ -72,4 +72,20 @@ describe('PublicarDisponibilidadUseCase', () => {
     expect(republicada.cuposMaximos).toBe(2);
     expect(spy).toHaveBeenCalledWith(primera.id, 2, expect.any(Date));
   });
+
+  it('al re-publicar con otra materia propaga la nueva materia a las tutorías ya materializadas', async () => {
+    const { useCase, tutorias } = construir(true);
+    const spy = jest.spyOn(tutorias, 'actualizarDatosFuturasPorDisponibilidad');
+
+    const primera = await useCase.ejecutar({ ...INPUT, materiaId: 'ECDI' });
+    const republicada = await useCase.ejecutar({ ...INPUT, materiaId: 'ARSW' });
+
+    expect(republicada.id).toBe(primera.id);
+    expect(republicada.materiaId).toBe('ARSW');
+    expect(spy).toHaveBeenCalledWith(
+      primera.id,
+      expect.objectContaining({ materiaId: 'ARSW' }),
+      expect.any(Date),
+    );
+  });
 });

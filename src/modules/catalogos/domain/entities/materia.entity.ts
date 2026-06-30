@@ -43,6 +43,16 @@ export class Materia {
     this.props.activa = false;
   }
 
+  /** Edita código y/o nombre. Cada campo provisto se valida igual que al crear. */
+  public actualizarDatos(codigo?: string, nombre?: string): void {
+    if (codigo !== undefined) {
+      this.props.codigo = Materia.validarCodigo(codigo);
+    }
+    if (nombre !== undefined) {
+      this.props.nombre = Materia.validarNombre(nombre);
+    }
+  }
+
   private static validarCodigo(codigo: string): string {
     const limpio = codigo?.trim() ?? '';
     if (limpio.length === 0) {
