@@ -2,7 +2,10 @@ import { ConflictError } from '../../../../shared/domain/errors/domain-error';
 import { Materia } from '../../domain/entities/materia.entity';
 import { IMateriaRepository } from '../../domain/ports/outbound/materia.repository.port';
 import { TutorMateria } from '../../domain/entities/tutor-materia.entity';
-import { ITutorMateriaRepository } from '../../domain/ports/outbound/tutor-materia.repository.port';
+import {
+  ITutorMateriaRepository,
+  MateriaDelTutor,
+} from '../../domain/ports/outbound/tutor-materia.repository.port';
 
 /**
  * Fakes in-memory de los puertos outbound para tests de casos de uso. Simulan
@@ -69,5 +72,22 @@ export class InMemoryTutorMateriaRepository implements ITutorMateriaRepository {
     return Promise.resolve(
       [...this.data.values()].filter((x) => x.tutorUserId === tutorUserId),
     );
+  }
+
+  listarMateriasConDetalle(_tutorUserId: string): Promise<MateriaDelTutor[]> {
+    return Promise.resolve([]);
+  }
+
+  eliminarPorTutorYMateria(
+    tutorUserId: string,
+    materiaId: string,
+  ): Promise<void> {
+    for (const [id, tm] of this.data) {
+      if (tm.tutorUserId === tutorUserId && tm.materiaId === materiaId) {
+        this.data.delete(id);
+        break;
+      }
+    }
+    return Promise.resolve();
   }
 }

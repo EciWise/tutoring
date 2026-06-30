@@ -7,6 +7,8 @@ import { Participante } from '../../domain/entities/participante.entity';
 import {
   CancelacionOrigen,
   IReservaRepository,
+  ParticipanteEnSesion,
+  ReservaConDetalle,
   TutoriaParaReserva,
 } from '../../domain/ports/outbound/reserva.repository.port';
 
@@ -104,6 +106,16 @@ export class InMemoryReservaRepository implements IReservaRepository {
     td.cuposOcupados++;
     this.participantes.push(destino);
     return Promise.resolve();
+  }
+
+  listarPorEstudiante(_estudianteUserId: string): Promise<ReservaConDetalle[]> {
+    return Promise.resolve([]);
+  }
+
+  listarParticipantesDeTutor(
+    _tutorUserId: string,
+  ): Promise<ParticipanteEnSesion[]> {
+    return Promise.resolve([]);
   }
 
   cancelarTutoria(tutoriaId: string, motivo: string): Promise<number> {

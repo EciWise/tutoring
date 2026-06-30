@@ -2,8 +2,12 @@ import { Injectable } from '@nestjs/common';
 import type { Sala as SalaRow } from '../../../../shared/infrastructure/prisma/prisma-client';
 import { mapUniqueViolation } from '../../../../shared/infrastructure/prisma/prisma-error.util';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { NotFoundError } from '../../../../shared/domain/errors/domain-error';
 import { Sala } from '../../domain/entities/sala.entity';
-import { ISalaRepository } from '../../domain/ports/outbound/sala.repository.port';
+import {
+  ActualizarSalaCambios,
+  ISalaRepository,
+} from '../../domain/ports/outbound/sala.repository.port';
 
 /** Adapter Prisma del puerto `ISalaRepository`. */
 @Injectable()
@@ -33,6 +37,36 @@ export class PrismaSalaRepository implements ISalaRepository {
       orderBy: { codigo: 'asc' },
     });
     return rows.map((row) => this.toDomain(row));
+  }
+
+  async obtenerPorId(id: string): Promise<Sala | null> {
+    const row = await this.prisma.sala.findUnique({ where: { id } });
+    return row ? this.toDomain(row) : null;
+  }
+
+  async actualizar(id: string, cambios: ActualizarSalaCambios): Promise<Sala> {
+    try {
+      const row = await this.prisma.sala.update({
+        where: { id },
+        data: {
+          ...(cambios.codigo !== undefined ? { codigo: cambios.codigo } : {}),
+          ...(cambios.edificio !== undefined
+            ? { edificio: cambios.edificio }
+            : {}),
+          ...(cambios.activa !== undefined ? { activa: cambios.activa } : {}),
+        },
+      });
+      return this.toDomain(row);
+    } catch (error) {
+      mapUniqueViolation(error, `Ya existe una sala con ese código.`);
+      throw error;
+    }
+  }
+
+  async eliminar(id: string): Promise<void> {
+    const row = await this.prisma.sala.findUnique({ where: { id } });
+    if (!row) throw new NotFoundError(`No existe la sala: ${id}`);
+    await this.prisma.sala.delete({ where: { id } });
   }
 
   private toDomain(row: SalaRow): Sala {

@@ -11,4 +11,22 @@ export const TUTORIA_REPOSITORY = Symbol('TUTORIA_REPOSITORY');
  */
 export interface ITutoriaRepository {
   guardar(tutoria: Tutoria): Promise<void>;
+  /**
+   * Cancela (PROGRAMADA → CANCELADA) todas las tutorías futuras originadas por
+   * `disponibilidadId` cuya fecha sea >= `desde`. Se llama al desactivar la
+   * plantilla para que el estudiante no vea slots que el tutor ya no ofrece.
+   */
+  cancelarFuturasPorDisponibilidad(
+    disponibilidadId: string,
+    desde: Date,
+  ): Promise<number>;
+  /**
+   * Re-activa (CANCELADA → PROGRAMADA) las tutorías futuras de `disponibilidadId`
+   * cuya fecha sea >= `desde`. Se llama al re-publicar una plantilla para que el
+   * estudiante vuelva a ver los slots existentes sin necesidad de re-crearlos.
+   */
+  reactivarCanceladasPorDisponibilidad(
+    disponibilidadId: string,
+    desde: Date,
+  ): Promise<number>;
 }

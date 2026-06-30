@@ -4,7 +4,10 @@ import { mapUniqueViolation } from '../../../../shared/infrastructure/prisma/pri
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { TutorMateria } from '../../domain/entities/tutor-materia.entity';
 import { ITutorMateriaConsultaPort } from '../../domain/ports/outbound/tutor-materia-consulta.port';
-import { ITutorMateriaRepository } from '../../domain/ports/outbound/tutor-materia.repository.port';
+import {
+  ITutorMateriaRepository,
+  MateriaDelTutor,
+} from '../../domain/ports/outbound/tutor-materia.repository.port';
 
 /** Adapter Prisma de los puertos `ITutorMateriaRepository` e `ITutorMateriaConsultaPort`. */
 @Injectable()
@@ -56,6 +59,30 @@ export class PrismaTutorMateriaRepository
       orderBy: { creadoEn: 'asc' },
     });
     return rows.map((row) => this.toDomain(row));
+  }
+
+  async listarMateriasConDetalle(
+    tutorUserId: string,
+  ): Promise<MateriaDelTutor[]> {
+    const rows = await this.prisma.tutorMateria.findMany({
+      where: { tutorUserId },
+      include: { materia: true },
+      orderBy: { creadoEn: 'asc' },
+    });
+    return rows.map((row) => ({
+      id: row.materiaId,
+      codigo: row.materia.codigo,
+      nombre: row.materia.nombre,
+    }));
+  }
+
+  async eliminarPorTutorYMateria(
+    tutorUserId: string,
+    materiaId: string,
+  ): Promise<void> {
+    await this.prisma.tutorMateria.deleteMany({
+      where: { tutorUserId, materiaId },
+    });
   }
 
   private toDomain(row: TutorMateriaRow): TutorMateria {

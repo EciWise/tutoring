@@ -36,6 +36,16 @@ export class InMemoryDisponibilidadRepository implements IDisponibilidadReposito
     return Promise.resolve(this.data.get(id) ?? null);
   }
 
+  obtenerPorTutorYFranja(
+    tutorUserId: string,
+    franjaId: string,
+  ): Promise<DisponibilidadTutor | null> {
+    const found = [...this.data.values()].find(
+      (x) => x.tutorUserId === tutorUserId && x.franjaId === franjaId,
+    );
+    return Promise.resolve(found ?? null);
+  }
+
   listarPorTutor(tutorUserId: string): Promise<DisponibilidadTutor[]> {
     return Promise.resolve(
       [...this.data.values()].filter((x) => x.tutorUserId === tutorUserId),
@@ -59,6 +69,20 @@ export class InMemoryTutoriaRepository implements ITutoriaRepository {
     }
     this.claves.add(clave);
     return Promise.resolve();
+  }
+
+  cancelarFuturasPorDisponibilidad(
+    _disponibilidadId: string,
+    _desde: Date,
+  ): Promise<number> {
+    return Promise.resolve(0);
+  }
+
+  reactivarCanceladasPorDisponibilidad(
+    _disponibilidadId: string,
+    _desde: Date,
+  ): Promise<number> {
+    return Promise.resolve(0);
   }
 }
 
