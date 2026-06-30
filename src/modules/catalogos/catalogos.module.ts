@@ -5,7 +5,9 @@ import { CambiarAutorizacionTutorMateriaUseCase } from './application/use-cases/
 import { CambiarEstadoMateriaUseCase } from './application/use-cases/cambiar-estado-materia.use-case';
 import { CrearFranjaUseCase } from './application/use-cases/crear-franja.use-case';
 import { CrearMateriaUseCase } from './application/use-cases/crear-materia.use-case';
+import { ActualizarSalaUseCase } from './application/use-cases/actualizar-sala.use-case';
 import { CrearSalaUseCase } from './application/use-cases/crear-sala.use-case';
+import { EliminarSalaUseCase } from './application/use-cases/eliminar-sala.use-case';
 import { ListarFranjasUseCase } from './application/use-cases/listar-franjas.use-case';
 import { ListarMateriasDeTutorUseCase } from './application/use-cases/listar-materias-de-tutor.use-case';
 import { ListarMateriasUseCase } from './application/use-cases/listar-materias.use-case';
@@ -44,6 +46,8 @@ import { PrismaTutorMateriaRepository } from './infrastructure/persistence/prism
     CambiarEstadoMateriaUseCase,
     CrearSalaUseCase,
     ListarSalasUseCase,
+    ActualizarSalaUseCase,
+    EliminarSalaUseCase,
     CrearFranjaUseCase,
     ListarFranjasUseCase,
     AsignarTutorMateriaUseCase,

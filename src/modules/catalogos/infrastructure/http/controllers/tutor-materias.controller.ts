@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Inject,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -22,7 +24,11 @@ import { RolesGuard } from '../../../../../auth/guards/roles.guard';
 import { RolUsuario } from '../../../../../shared/domain/enums/rol-usuario.enum';
 import { AsignarTutorMateriaUseCase } from '../../../application/use-cases/asignar-tutor-materia.use-case';
 import { CambiarAutorizacionTutorMateriaUseCase } from '../../../application/use-cases/cambiar-autorizacion-tutor-materia.use-case';
-import { ListarMateriasDeTutorUseCase } from '../../../application/use-cases/listar-materias-de-tutor.use-case';
+import type {
+  ITutorMateriaRepository,
+  MateriaDelTutor,
+} from '../../../domain/ports/outbound/tutor-materia.repository.port';
+import { TUTOR_MATERIA_REPOSITORY } from '../../../domain/ports/outbound/tutor-materia.repository.port';
 import { TutorMateriaResponseDto } from '../dto/catalogo-response.dto';
 import { AsignarTutorMateriaDto } from '../dto/asignar-tutor-materia.dto';
 
@@ -34,7 +40,8 @@ export class TutorMateriasController {
   constructor(
     private readonly asignar: AsignarTutorMateriaUseCase,
     private readonly cambiarAutorizacion: CambiarAutorizacionTutorMateriaUseCase,
-    private readonly listarDeTutor: ListarMateriasDeTutorUseCase,
+    @Inject(TUTOR_MATERIA_REPOSITORY)
+    private readonly repo: ITutorMateriaRepository,
   ) {}
 
   @Post()
@@ -51,14 +58,28 @@ export class TutorMateriasController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar materias asignadas a un tutor' })
+  @ApiOperation({
+    summary: 'Listar materias de un tutor con detalle (código y nombre)',
+  })
   @ApiQuery({ name: 'tutorUserId', required: true, format: 'uuid' })
-  @ApiOkResponse({ type: TutorMateriaResponseDto, isArray: true })
+  @ApiOkResponse({ isArray: true })
   async listarMaterias(
     @Query('tutorUserId', ParseUUIDPipe) tutorUserId: string,
-  ): Promise<TutorMateriaResponseDto[]> {
-    const asignaciones = await this.listarDeTutor.ejecutar(tutorUserId);
-    return asignaciones.map((tm) => TutorMateriaResponseDto.desde(tm));
+  ): Promise<MateriaDelTutor[]> {
+    return this.repo.listarMateriasConDetalle(tutorUserId);
+  }
+
+  @Delete()
+  @UseGuards(RolesGuard)
+  @Roles(RolUsuario.ADMIN)
+  @ApiOperation({ summary: 'Remover materia de un tutor (solo admin)' })
+  @ApiQuery({ name: 'tutorUserId', required: true, format: 'uuid' })
+  @ApiQuery({ name: 'materiaId', required: true, format: 'uuid' })
+  async removerMateria(
+    @Query('tutorUserId', ParseUUIDPipe) tutorUserId: string,
+    @Query('materiaId', ParseUUIDPipe) materiaId: string,
+  ): Promise<void> {
+    await this.repo.eliminarPorTutorYMateria(tutorUserId, materiaId);
   }
 
   @Patch(':id/autorizar')

@@ -16,6 +16,11 @@ import {
   TUTOR_MATERIA_CONSULTA,
   type ITutorMateriaConsultaPort,
 } from '../../../catalogos/domain/ports/outbound/tutor-materia-consulta.port';
+import {
+  TUTORIA_REPOSITORY,
+  type ITutoriaRepository,
+} from '../../../tutorias/domain/ports/outbound/tutoria.repository.port';
+import { aUTCDate } from '../../domain/fecha.util';
 import { DisponibilidadTutor } from '../../domain/entities/disponibilidad-tutor.entity';
 import { DisponibilidadPublicada } from '../../domain/events/disponibilidad-publicada.event';
 import {
@@ -39,6 +44,8 @@ export class PublicarDisponibilidadUseCase {
     private readonly franjas: IFranjaHorariaConsultaPort,
     @Inject(EVENT_PUBLISHER)
     private readonly eventos: IEventPublisher,
+    @Inject(TUTORIA_REPOSITORY)
+    private readonly tutorias: ITutoriaRepository,
   ) {}
 
   async ejecutar(input: {
@@ -66,6 +73,40 @@ export class PublicarDisponibilidadUseCase {
       throw new NotFoundError(
         `Franja horaria no encontrada o inactiva: ${input.franjaId}`,
       );
+    }
+
+    // RN-02: un único registro por (tutor, franja). Si ya existe (activo o no),
+    // re-activarlo y actualizar sus campos en vez de crear una fila duplicada.
+    const existente = await this.repo.obtenerPorTutorYFranja(
+      input.tutorUserId,
+      input.franjaId,
+    );
+
+    if (existente) {
+      existente.reactivar({
+        materiaId: input.materiaId,
+        salaId: input.salaId,
+        modalidad: input.modalidad,
+        cuposMaximos: input.cuposMaximos,
+        vigenciaDesde: input.vigenciaDesde,
+        vigenciaHasta: input.vigenciaHasta,
+      });
+      await this.repo.actualizar(existente);
+      // Re-activar las tutorías que fueron canceladas al desactivar la plantilla;
+      // la materialización (evento) crea las que no existan todavía.
+      await this.tutorias.reactivarCanceladasPorDisponibilidad(
+        existente.id,
+        aUTCDate(new Date()),
+      );
+      await this.eventos.publish(
+        new DisponibilidadPublicada(
+          existente.id,
+          existente.tutorUserId,
+          existente.franjaId,
+          existente.materiaId,
+        ),
+      );
+      return existente;
     }
 
     const disponibilidad = DisponibilidadTutor.crear({

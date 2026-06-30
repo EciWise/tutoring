@@ -12,6 +12,7 @@ import { DISPONIBILIDAD_REPOSITORY } from './domain/ports/outbound/disponibilida
 import { DisponibilidadController } from './infrastructure/http/controllers/disponibilidad.controller';
 import { MaterializacionController } from './infrastructure/http/controllers/materializacion.controller';
 import { PrismaDisponibilidadRepository } from './infrastructure/persistence/prisma-disponibilidad.repository';
+import { DisponibilidadPublicadaListener } from './infrastructure/scheduling/disponibilidad-publicada.listener';
 import { MaterializacionJob } from './infrastructure/scheduling/materializacion.job';
 
 /**
@@ -29,6 +30,7 @@ import { MaterializacionJob } from './infrastructure/scheduling/materializacion.
     ListarDisponibilidadesDeTutorUseCase,
     MaterializarVentanaUseCase,
     MaterializacionJob,
+    DisponibilidadPublicadaListener,
     {
       provide: DISPONIBILIDAD_REPOSITORY,
       useClass: PrismaDisponibilidadRepository,

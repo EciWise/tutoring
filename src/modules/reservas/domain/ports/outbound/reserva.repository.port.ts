@@ -1,8 +1,56 @@
+import { EstadoAsistencia } from '../../../../../shared/domain/enums/estado-asistencia.enum';
 import { EstadoTutoria } from '../../../../../shared/domain/enums/estado-tutoria.enum';
 import { Participante } from '../../entities/participante.entity';
 
 /** Token de inyección del repositorio transaccional de reservas. */
 export const RESERVA_REPOSITORY = Symbol('RESERVA_REPOSITORY');
+
+/** Vista de la participación de un estudiante en una sesión del tutor. */
+export interface ParticipanteEnSesion {
+  id: string;
+  tutoriaId: string;
+  estudianteUserId: string;
+  estadoAsistencia: EstadoAsistencia;
+  temaEspecifico: string | null;
+  descripcionDudas: string | null;
+  canceladoEn: Date | null;
+  motivoCancelacion: string | null;
+  sesion: {
+    fecha: Date;
+    horaInicio: string;
+    horaFin: string;
+    modalidad: string;
+    materiaId: string;
+    materiaCodigo: string;
+    materiaNombre: string;
+    salaCodigo: string | null;
+    enlaceVirtual: string | null;
+  };
+}
+
+/** Vista detallada de una reserva con datos de la tutoría para el estudiante. */
+export interface ReservaConDetalle {
+  id: string;
+  tutoriaId: string;
+  estudianteUserId: string;
+  estadoAsistencia: EstadoAsistencia;
+  temaEspecifico: string | null;
+  descripcionDudas: string | null;
+  canceladoEn: Date | null;
+  motivoCancelacion: string | null;
+  tutoria: {
+    fecha: Date;
+    horaInicio: string; // 'HH:MM' extraído de Time
+    horaFin: string; // 'HH:MM' extraído de Time
+    modalidad: string;
+    materiaId: string;
+    materiaCodigo: string;
+    materiaNombre: string;
+    tutorUserId: string;
+    salaCodigo: string | null;
+    enlaceVirtual: string | null;
+  };
+}
 
 /** Vista mínima de la tutoría que necesitan las reglas de reserva. */
 export interface TutoriaParaReserva {
@@ -55,4 +103,12 @@ export interface IReservaRepository {
 
   /** Cancela la tutoría y libera a todos sus participantes. Devuelve cuántos liberó. */
   cancelarTutoria(tutoriaId: string, motivo: string): Promise<number>;
+
+  /** RF-05: lista todas las reservas de un estudiante con detalle de la tutoría. */
+  listarPorEstudiante(estudianteUserId: string): Promise<ReservaConDetalle[]>;
+
+  /** Lista todas las participaciones en sesiones propias del tutor. */
+  listarParticipantesDeTutor(
+    tutorUserId: string,
+  ): Promise<ParticipanteEnSesion[]>;
 }

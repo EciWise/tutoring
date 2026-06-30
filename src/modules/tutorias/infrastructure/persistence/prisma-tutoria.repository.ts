@@ -9,6 +9,36 @@ import { ITutoriaRepository } from '../../domain/ports/outbound/tutoria.reposito
 export class PrismaTutoriaRepository implements ITutoriaRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async reactivarCanceladasPorDisponibilidad(
+    disponibilidadId: string,
+    desde: Date,
+  ): Promise<number> {
+    const { count } = await this.prisma.tutoria.updateMany({
+      where: {
+        disponibilidadId,
+        estado: 'CANCELADA',
+        fecha: { gte: desde },
+      },
+      data: { estado: 'PROGRAMADA' },
+    });
+    return count;
+  }
+
+  async cancelarFuturasPorDisponibilidad(
+    disponibilidadId: string,
+    desde: Date,
+  ): Promise<number> {
+    const { count } = await this.prisma.tutoria.updateMany({
+      where: {
+        disponibilidadId,
+        estado: 'PROGRAMADA',
+        fecha: { gte: desde },
+      },
+      data: { estado: 'CANCELADA' },
+    });
+    return count;
+  }
+
   async guardar(tutoria: Tutoria): Promise<void> {
     try {
       await this.prisma.tutoria.create({
