@@ -92,11 +92,20 @@ export class PublicarDisponibilidadUseCase {
         vigenciaHasta: input.vigenciaHasta,
       });
       await this.repo.actualizar(existente);
+      const hoy = aUTCDate(new Date());
       // Re-activar las tutorías que fueron canceladas al desactivar la plantilla;
       // la materialización (evento) crea las que no existan todavía.
       await this.tutorias.reactivarCanceladasPorDisponibilidad(
         existente.id,
-        aUTCDate(new Date()),
+        hoy,
+      );
+      // Propagar el cupo asignado por el tutor a las tutorías ya materializadas:
+      // la materialización es idempotente y no las actualizaría, así que sin esto
+      // conservarían el cupo original (RF-01).
+      await this.tutorias.actualizarCuposFuturasPorDisponibilidad(
+        existente.id,
+        existente.cuposMaximos,
+        hoy,
       );
       await this.eventos.publish(
         new DisponibilidadPublicada(

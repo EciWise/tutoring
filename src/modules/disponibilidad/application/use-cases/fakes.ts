@@ -84,6 +84,14 @@ export class InMemoryTutoriaRepository implements ITutoriaRepository {
   ): Promise<number> {
     return Promise.resolve(0);
   }
+
+  actualizarCuposFuturasPorDisponibilidad(
+    _disponibilidadId: string,
+    _cuposMaximos: number,
+    _desde: Date,
+  ): Promise<number> {
+    return Promise.resolve(0);
+  }
 }
 
 export class FakeTutorMateriaConsulta implements ITutorMateriaConsultaPort {
