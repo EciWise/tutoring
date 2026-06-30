@@ -12,6 +12,8 @@ import { Participante } from '../../domain/entities/participante.entity';
 import {
   CancelacionOrigen,
   IReservaRepository,
+  ParticipanteEnSesion,
+  ReservaConDetalle,
   TutoriaParaReserva,
 } from '../../domain/ports/outbound/reserva.repository.port';
 
@@ -208,6 +210,97 @@ export class PrismaReservaRepository implements IReservaRepository {
         motivoCancelacion: null,
       },
     });
+  }
+
+  async listarPorEstudiante(
+    estudianteUserId: string,
+  ): Promise<ReservaConDetalle[]> {
+    const rows = await this.prisma.participante.findMany({
+      where: { estudianteUserId },
+      include: {
+        tutoria: {
+          include: {
+            materia: { select: { id: true, codigo: true, nombre: true } },
+            franja: { select: { horaInicio: true, horaFin: true } },
+            sala: { select: { codigo: true } },
+          },
+        },
+      },
+      orderBy: [{ tutoria: { fecha: 'asc' } }],
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      tutoriaId: row.tutoriaId,
+      estudianteUserId: row.estudianteUserId,
+      estadoAsistencia: row.estadoAsistencia as unknown as EstadoAsistencia,
+      temaEspecifico: row.temaEspecifico,
+      descripcionDudas: row.descripcionDudas,
+      canceladoEn: row.canceladoEn,
+      motivoCancelacion: row.motivoCancelacion,
+      tutoria: {
+        fecha: row.tutoria.fecha,
+        horaInicio:
+          row.tutoria.franja.horaInicio instanceof Date
+            ? row.tutoria.franja.horaInicio.toISOString().slice(11, 16)
+            : String(row.tutoria.franja.horaInicio).slice(0, 5),
+        horaFin:
+          row.tutoria.franja.horaFin instanceof Date
+            ? row.tutoria.franja.horaFin.toISOString().slice(11, 16)
+            : String(row.tutoria.franja.horaFin).slice(0, 5),
+        modalidad: row.tutoria.modalidad,
+        materiaId: row.tutoria.materiaId,
+        materiaCodigo: row.tutoria.materia.codigo,
+        materiaNombre: row.tutoria.materia.nombre,
+        tutorUserId: row.tutoria.tutorUserId,
+        salaCodigo: row.tutoria.sala?.codigo ?? null,
+        enlaceVirtual: row.tutoria.enlaceVirtual,
+      },
+    }));
+  }
+
+  async listarParticipantesDeTutor(
+    tutorUserId: string,
+  ): Promise<ParticipanteEnSesion[]> {
+    const rows = await this.prisma.participante.findMany({
+      where: { tutoria: { tutorUserId } },
+      include: {
+        tutoria: {
+          include: {
+            materia: { select: { id: true, codigo: true, nombre: true } },
+            franja: { select: { horaInicio: true, horaFin: true } },
+            sala: { select: { codigo: true } },
+          },
+        },
+      },
+      orderBy: [{ tutoria: { fecha: 'asc' } }],
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      tutoriaId: row.tutoriaId,
+      estudianteUserId: row.estudianteUserId,
+      estadoAsistencia: row.estadoAsistencia as unknown as EstadoAsistencia,
+      temaEspecifico: row.temaEspecifico,
+      descripcionDudas: row.descripcionDudas,
+      canceladoEn: row.canceladoEn,
+      motivoCancelacion: row.motivoCancelacion,
+      sesion: {
+        fecha: row.tutoria.fecha,
+        horaInicio:
+          row.tutoria.franja.horaInicio instanceof Date
+            ? row.tutoria.franja.horaInicio.toISOString().slice(11, 16)
+            : String(row.tutoria.franja.horaInicio).slice(0, 5),
+        horaFin:
+          row.tutoria.franja.horaFin instanceof Date
+            ? row.tutoria.franja.horaFin.toISOString().slice(11, 16)
+            : String(row.tutoria.franja.horaFin).slice(0, 5),
+        modalidad: row.tutoria.modalidad,
+        materiaId: row.tutoria.materiaId,
+        materiaCodigo: row.tutoria.materia.codigo,
+        materiaNombre: row.tutoria.materia.nombre,
+        salaCodigo: row.tutoria.sala?.codigo ?? null,
+        enlaceVirtual: row.tutoria.enlaceVirtual,
+      },
+    }));
   }
 
   async cancelarTutoria(tutoriaId: string, motivo: string): Promise<number> {

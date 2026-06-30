@@ -49,13 +49,15 @@ export class PrismaTutoriaQueryRepository implements ITutoriaQueryPort {
   constructor(private readonly prisma: PrismaService) {}
 
   async buscar(filtros: BuscarTutoriasFiltros): Promise<TutoriaResumen[]> {
+    const hoy = new Date();
+    hoy.setUTCHours(0, 0, 0, 0);
     const filas = await this.prisma.tutoria.findMany({
       where: {
         estado: 'PROGRAMADA',
+        fecha: filtros.fecha ? filtros.fecha : { gte: hoy },
         materiaId: filtros.materiaId,
         tutorUserId: filtros.tutorUserId,
         modalidad: filtros.modalidad,
-        fecha: filtros.fecha,
       },
       include: INCLUDE,
       orderBy: [{ fecha: 'asc' }, { franjaId: 'asc' }],

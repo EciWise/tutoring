@@ -73,6 +73,17 @@ export class PrismaDisponibilidadRepository implements IDisponibilidadRepository
     return fila ? this.toDomain(fila) : null;
   }
 
+  async obtenerPorTutorYFranja(
+    tutorUserId: string,
+    franjaId: string,
+  ): Promise<DisponibilidadTutor | null> {
+    const fila = await this.prisma.disponibilidadTutor.findUnique({
+      where: { tutorUserId_franjaId: { tutorUserId, franjaId } },
+      include: INCLUDE_FRANJA,
+    });
+    return fila ? this.toDomain(fila) : null;
+  }
+
   async listarPorTutor(tutorUserId: string): Promise<DisponibilidadTutor[]> {
     const filas = await this.prisma.disponibilidadTutor.findMany({
       where: { tutorUserId },

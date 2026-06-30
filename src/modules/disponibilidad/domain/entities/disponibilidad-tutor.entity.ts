@@ -132,6 +132,35 @@ export class DisponibilidadTutor {
   }
 
   /**
+   * Re-activa una disponibilidad desactivada y actualiza sus campos. Permite
+   * reutilizar el mismo registro cuando el tutor vuelve a ofrecer una franja
+   * ya existente (RN-02: un único registro por tutor×franja).
+   */
+  public reactivar(cambios: CambiosDisponibilidad): void {
+    const modalidad = cambios.modalidad ?? this.props.modalidad;
+    const salaId =
+      cambios.salaId !== undefined ? cambios.salaId : this.props.salaId;
+    DisponibilidadTutor.validarCoherencia(modalidad, salaId);
+
+    this.props.activa = true;
+    this.props.materiaId = cambios.materiaId ?? this.props.materiaId;
+    this.props.salaId = salaId;
+    this.props.modalidad = modalidad;
+    if (cambios.cuposMaximos !== undefined) {
+      this.props.cupos = Cupos.crear(cambios.cuposMaximos);
+    }
+    if (
+      cambios.vigenciaDesde !== undefined ||
+      cambios.vigenciaHasta !== undefined
+    ) {
+      this.props.vigencia = RangoVigencia.crear(
+        cambios.vigenciaDesde ?? this.props.vigencia.desde,
+        cambios.vigenciaHasta ?? this.props.vigencia.hasta,
+      );
+    }
+  }
+
+  /**
    * Materializa una `Tutoria` PROGRAMADA para `fecha`. Valida que esté activa,
    * que la fecha caiga en la vigencia y que su ISODOW coincida con el día de la
    * franja. Devuelve el agregado `Tutoria` (no lo persiste).

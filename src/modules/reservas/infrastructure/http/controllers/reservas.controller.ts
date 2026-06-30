@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   ParseUUIDPipe,
   Post,
@@ -23,6 +24,14 @@ import {
   CancelarTutoriaPorTutorUseCase,
   type ResultadoCancelacionTutoria,
 } from '../../../application/use-cases/cancelar-tutoria-por-tutor.use-case';
+import {
+  ListarReservasDeEstudianteUseCase,
+  type ReservaDetalleConTutor,
+} from '../../../application/use-cases/listar-reservas-de-estudiante.use-case';
+import {
+  ListarSesionesDeTutorUseCase,
+  type ParticipanteEnSesionConNombre,
+} from '../../../application/use-cases/listar-sesiones-de-tutor.use-case';
 import { ReprogramarTutoriaUseCase } from '../../../application/use-cases/reprogramar-tutoria.use-case';
 import { ReservarTutoriaUseCase } from '../../../application/use-cases/reservar-tutoria.use-case';
 import { CancelarReservaDto } from '../dto/cancelar-reserva.dto';
@@ -45,7 +54,31 @@ export class ReservasController {
     private readonly cancelar: CancelarReservaUseCase,
     private readonly reprogramar: ReprogramarTutoriaUseCase,
     private readonly cancelarPorTutor: CancelarTutoriaPorTutorUseCase,
+    private readonly listar: ListarReservasDeEstudianteUseCase,
+    private readonly listarSesiones: ListarSesionesDeTutorUseCase,
   ) {}
+
+  @Get()
+  @UseGuards(RolesGuard)
+  @Roles(RolUsuario.ESTUDIANTE)
+  @ApiOperation({ summary: 'Listar mis reservas (RF-05)' })
+  async listarMisReservas(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ReservaDetalleConTutor[]> {
+    return this.listar.ejecutar(user.id);
+  }
+
+  @Get('mis-sesiones')
+  @UseGuards(RolesGuard)
+  @Roles(RolUsuario.TUTOR, RolUsuario.ADMIN)
+  @ApiOperation({
+    summary: 'Listar participantes en sesiones propias del tutor',
+  })
+  async listarMisSesiones(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ParticipanteEnSesionConNombre[]> {
+    return this.listarSesiones.ejecutar(user.id);
+  }
 
   @Post()
   @UseGuards(RolesGuard)
