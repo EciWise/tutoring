@@ -8,6 +8,7 @@ import {
   FakeFranjaConsulta,
   FakeTutorMateriaConsulta,
   InMemoryDisponibilidadRepository,
+  InMemoryTutoriaRepository,
   NoopEventPublisher,
 } from './fakes';
 
@@ -24,6 +25,7 @@ const INPUT = {
 function construir(autorizada: boolean, franjaActiva = true) {
   const repo = new InMemoryDisponibilidadRepository();
   const eventos = new NoopEventPublisher();
+  const tutorias = new InMemoryTutoriaRepository();
   const useCase = new PublicarDisponibilidadUseCase(
     repo,
     new FakeTutorMateriaConsulta(autorizada),
@@ -31,8 +33,9 @@ function construir(autorizada: boolean, franjaActiva = true) {
       franjaActiva ? { id: 'franja-1', diaSemana: 1, activa: true } : null,
     ),
     eventos,
+    tutorias,
   );
-  return { useCase, repo, eventos };
+  return { useCase, repo, eventos, tutorias };
 }
 
 describe('PublicarDisponibilidadUseCase', () => {
@@ -56,5 +59,17 @@ describe('PublicarDisponibilidadUseCase', () => {
   it('lanza NotFoundError si la franja no existe/está inactiva', async () => {
     const { useCase } = construir(true, false);
     await expect(useCase.ejecutar(INPUT)).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it('al re-publicar una franja existente propaga el cupo asignado a sus tutorías', async () => {
+    const { useCase, tutorias } = construir(true);
+    const spy = jest.spyOn(tutorias, 'actualizarCuposFuturasPorDisponibilidad');
+
+    const primera = await useCase.ejecutar({ ...INPUT, cuposMaximos: 4 });
+    const republicada = await useCase.ejecutar({ ...INPUT, cuposMaximos: 2 });
+
+    expect(republicada.id).toBe(primera.id);
+    expect(republicada.cuposMaximos).toBe(2);
+    expect(spy).toHaveBeenCalledWith(primera.id, 2, expect.any(Date));
   });
 });

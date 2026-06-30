@@ -29,4 +29,16 @@ export interface ITutoriaRepository {
     disponibilidadId: string,
     desde: Date,
   ): Promise<number>;
+  /**
+   * Propaga el nuevo `cuposMaximos` de la plantilla a sus tutorías futuras
+   * PROGRAMADAS (`fecha >= desde`). Sólo afecta a las que aún caben en la nueva
+   * capacidad (`cuposOcupados <= cuposMaximos`) para no violar la invariante de
+   * `Cupos`. Se llama al re-publicar/editar la plantilla con un cupo distinto,
+   * de forma que el estudiante vea el cupo que el tutor asignó y no el original.
+   */
+  actualizarCuposFuturasPorDisponibilidad(
+    disponibilidadId: string,
+    cuposMaximos: number,
+    desde: Date,
+  ): Promise<number>;
 }
