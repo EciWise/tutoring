@@ -25,6 +25,14 @@ import {
   type ResultadoCancelacionTutoria,
 } from '../../../application/use-cases/cancelar-tutoria-por-tutor.use-case';
 import {
+  CalificarTutoriaUseCase,
+  type ResultadoCalificacion,
+} from '../../../application/use-cases/calificar-tutoria.use-case';
+import {
+  FinalizarTutoriaUseCase,
+  type ResultadoFinalizacionTutoria,
+} from '../../../application/use-cases/finalizar-tutoria.use-case';
+import {
   ListarReservasDeEstudianteUseCase,
   type ReservaDetalleConTutor,
 } from '../../../application/use-cases/listar-reservas-de-estudiante.use-case';
@@ -34,6 +42,7 @@ import {
 } from '../../../application/use-cases/listar-sesiones-de-tutor.use-case';
 import { ReprogramarTutoriaUseCase } from '../../../application/use-cases/reprogramar-tutoria.use-case';
 import { ReservarTutoriaUseCase } from '../../../application/use-cases/reservar-tutoria.use-case';
+import { CalificarTutoriaDto } from '../dto/calificar-tutoria.dto';
 import { CancelarReservaDto } from '../dto/cancelar-reserva.dto';
 import { CancelarTutoriaDto } from '../dto/cancelar-tutoria.dto';
 import { ReprogramarTutoriaDto } from '../dto/reprogramar-tutoria.dto';
@@ -54,6 +63,8 @@ export class ReservasController {
     private readonly cancelar: CancelarReservaUseCase,
     private readonly reprogramar: ReprogramarTutoriaUseCase,
     private readonly cancelarPorTutor: CancelarTutoriaPorTutorUseCase,
+    private readonly finalizar: FinalizarTutoriaUseCase,
+    private readonly calificar: CalificarTutoriaUseCase,
     private readonly listar: ListarReservasDeEstudianteUseCase,
     private readonly listarSesiones: ListarSesionesDeTutorUseCase,
   ) {}
@@ -152,6 +163,41 @@ export class ReservasController {
       tutoriaId: dto.tutoriaId,
       actor: { userId: user.id, esAdmin: user.rol === RolUsuario.ADMIN },
       motivo: dto.motivo,
+    });
+  }
+
+  @Post(':tutoriaId/finalizar')
+  @UseGuards(RolesGuard)
+  @Roles(RolUsuario.TUTOR, RolUsuario.ADMIN)
+  @ApiOperation({
+    summary: 'El tutor marca la tutoría como REALIZADA (dispara puntos)',
+  })
+  async finalizarTutoria(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tutoriaId', ParseUUIDPipe) tutoriaId: string,
+  ): Promise<ResultadoFinalizacionTutoria> {
+    return this.finalizar.ejecutar({
+      tutoriaId,
+      actor: { userId: user.id, esAdmin: user.rol === RolUsuario.ADMIN },
+    });
+  }
+
+  @Post(':tutoriaId/calificar')
+  @UseGuards(RolesGuard)
+  @Roles(RolUsuario.ESTUDIANTE)
+  @ApiOperation({
+    summary: 'El estudiante califica (1-5) una tutoría REALIZADA (RF-13)',
+  })
+  async calificarTutoria(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tutoriaId', ParseUUIDPipe) tutoriaId: string,
+    @Body() dto: CalificarTutoriaDto,
+  ): Promise<ResultadoCalificacion> {
+    return this.calificar.ejecutar({
+      tutoriaId,
+      estudianteUserId: user.id,
+      calificacion: dto.calificacion,
+      comentario: dto.comentario,
     });
   }
 }

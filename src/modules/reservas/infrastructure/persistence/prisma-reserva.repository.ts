@@ -248,6 +248,7 @@ export class PrismaReservaRepository implements IReservaRepository {
             ? row.tutoria.franja.horaFin.toISOString().slice(11, 16)
             : String(row.tutoria.franja.horaFin).slice(0, 5),
         modalidad: row.tutoria.modalidad,
+        estado: row.tutoria.estado,
         materiaId: row.tutoria.materiaId,
         materiaCodigo: row.tutoria.materia.codigo,
         materiaNombre: row.tutoria.materia.nombre,
@@ -294,6 +295,7 @@ export class PrismaReservaRepository implements IReservaRepository {
             ? row.tutoria.franja.horaFin.toISOString().slice(11, 16)
             : String(row.tutoria.franja.horaFin).slice(0, 5),
         modalidad: row.tutoria.modalidad,
+        estado: row.tutoria.estado,
         materiaId: row.tutoria.materiaId,
         materiaCodigo: row.tutoria.materia.codigo,
         materiaNombre: row.tutoria.materia.nombre,
@@ -301,6 +303,82 @@ export class PrismaReservaRepository implements IReservaRepository {
         enlaceVirtual: row.tutoria.enlaceVirtual,
       },
     }));
+  }
+
+  async finalizarTutoria(tutoriaId: string): Promise<string[]> {
+    return this.prisma.$transaction(async (tx) => {
+      const filas = await tx.$executeRaw`
+        UPDATE tutoria SET estado = 'REALIZADA'
+        WHERE id = ${tutoriaId}::uuid AND estado = 'PROGRAMADA'`;
+      if (filas === 0) {
+        throw new BusinessRuleViolation(
+          'Solo se puede finalizar una tutoría PROGRAMADA.',
+        );
+      }
+      const participantes = await tx.participante.findMany({
+        where: {
+          tutoriaId,
+          estadoAsistencia: { not: PrismaEstadoAsistencia.CANCELADA },
+        },
+        select: { estudianteUserId: true },
+      });
+      return participantes.map((p) => p.estudianteUserId);
+    });
+  }
+
+  async calificarTutoria(input: {
+    tutoriaId: string;
+    estudianteUserId: string;
+    calificacion: number;
+    comentario?: string | null;
+  }): Promise<{ tutorUserId: string }> {
+    return this.prisma.$transaction(async (tx) => {
+      const tutoria = await tx.tutoria.findUnique({
+        where: { id: input.tutoriaId },
+        select: { tutorUserId: true, estado: true },
+      });
+      if (!tutoria) {
+        throw new NotFoundError(`No existe la tutoría: ${input.tutoriaId}`);
+      }
+      if ((tutoria.estado as unknown as EstadoTutoria) !== EstadoTutoria.REALIZADA) {
+        throw new BusinessRuleViolation(
+          'Solo se puede calificar una tutoría REALIZADA.',
+        );
+      }
+
+      const participante = await tx.participante.findFirst({
+        where: {
+          tutoriaId: input.tutoriaId,
+          estudianteUserId: input.estudianteUserId,
+          estadoAsistencia: { not: PrismaEstadoAsistencia.CANCELADA },
+        },
+        select: { id: true },
+      });
+      if (!participante) {
+        throw new NotFoundError(
+          'No participaste en esta tutoría; no puedes calificarla.',
+        );
+      }
+
+      const yaExiste = await tx.evaluacionTutoria.findUnique({
+        where: { participanteId: participante.id },
+        select: { id: true },
+      });
+      if (yaExiste) {
+        throw new ConflictError('Ya calificaste esta tutoría.');
+      }
+
+      await tx.evaluacionTutoria.create({
+        data: {
+          tutoriaId: input.tutoriaId,
+          participanteId: participante.id,
+          calificacion: input.calificacion,
+          comentario: input.comentario ?? null,
+        },
+      });
+
+      return { tutorUserId: tutoria.tutorUserId };
+    });
   }
 
   async cancelarTutoria(tutoriaId: string, motivo: string): Promise<number> {
