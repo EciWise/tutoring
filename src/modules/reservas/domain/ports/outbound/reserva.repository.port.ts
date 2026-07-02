@@ -20,6 +20,7 @@ export interface ParticipanteEnSesion {
     horaInicio: string;
     horaFin: string;
     modalidad: string;
+    estado: string;
     materiaId: string;
     materiaCodigo: string;
     materiaNombre: string;
@@ -43,6 +44,7 @@ export interface ReservaConDetalle {
     horaInicio: string; // 'HH:MM' extraído de Time
     horaFin: string; // 'HH:MM' extraído de Time
     modalidad: string;
+    estado: string;
     materiaId: string;
     materiaCodigo: string;
     materiaNombre: string;
@@ -103,6 +105,24 @@ export interface IReservaRepository {
 
   /** Cancela la tutoría y libera a todos sus participantes. Devuelve cuántos liberó. */
   cancelarTutoria(tutoriaId: string, motivo: string): Promise<number>;
+
+  /**
+   * Marca la tutoría como REALIZADA (solo si estaba PROGRAMADA) y devuelve los
+   * userId de los participantes activos (no cancelados). Atómico.
+   */
+  finalizarTutoria(tutoriaId: string): Promise<string[]>;
+
+  /**
+   * Registra la evaluación (1-5) del estudiante a su tutor sobre una tutoría
+   * REALIZADA (RF-13). Es idempotente por la unicidad de `participante` (RN-07):
+   * lanza ConflictError si ya calificó. Devuelve el `tutorUserId` para el evento.
+   */
+  calificarTutoria(input: {
+    tutoriaId: string;
+    estudianteUserId: string;
+    calificacion: number;
+    comentario?: string | null;
+  }): Promise<{ tutorUserId: string }>;
 
   /** RF-05: lista todas las reservas de un estudiante con detalle de la tutoría. */
   listarPorEstudiante(estudianteUserId: string): Promise<ReservaConDetalle[]>;

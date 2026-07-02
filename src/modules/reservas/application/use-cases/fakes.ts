@@ -138,6 +138,35 @@ export class InMemoryReservaRepository implements IReservaRepository {
     return Promise.resolve(liberados);
   }
 
+  finalizarTutoria(tutoriaId: string): Promise<string[]> {
+    const t = this.tutorias.get(tutoriaId);
+    if (!t) {
+      return Promise.resolve([]);
+    }
+    t.estado = EstadoTutoria.REALIZADA;
+    const userIds = this.participantes
+      .filter(
+        (p) =>
+          p.tutoriaId === tutoriaId &&
+          p.estadoAsistencia !== EstadoAsistencia.CANCELADA,
+      )
+      .map((p) => p.estudianteUserId);
+    return Promise.resolve(userIds);
+  }
+
+  calificarTutoria(input: {
+    tutoriaId: string;
+    estudianteUserId: string;
+    calificacion: number;
+    comentario?: string | null;
+  }): Promise<{ tutorUserId: string }> {
+    const t = this.tutorias.get(input.tutoriaId);
+    if (!t) {
+      return Promise.reject(new ConflictError('No existe la tutoría.'));
+    }
+    return Promise.resolve({ tutorUserId: t.tutorUserId });
+  }
+
   private activo(
     tutoriaId: string,
     estudianteUserId: string,
