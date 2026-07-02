@@ -107,6 +107,19 @@ export class PublicarDisponibilidadUseCase {
         existente.cuposMaximos,
         hoy,
       );
+      // Propagar materia/modalidad/sala a las tutorías ya materializadas: si el
+      // tutor cambió la materia de esta franja (p. ej. de ECDI a ARSW), la
+      // materialización idempotente no recrearía los slots existentes y el
+      // estudiante/admin seguiría viendo la materia antigua.
+      await this.tutorias.actualizarDatosFuturasPorDisponibilidad(
+        existente.id,
+        {
+          materiaId: existente.materiaId,
+          modalidad: existente.modalidad,
+          salaId: existente.salaId,
+        },
+        hoy,
+      );
       await this.eventos.publish(
         new DisponibilidadPublicada(
           existente.id,

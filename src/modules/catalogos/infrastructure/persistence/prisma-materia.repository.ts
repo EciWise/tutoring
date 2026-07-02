@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type { Materia as MateriaRow } from '../../../../shared/infrastructure/prisma/prisma-client';
-import { mapUniqueViolation } from '../../../../shared/infrastructure/prisma/prisma-error.util';
+import {
+  mapForeignKeyViolation,
+  mapUniqueViolation,
+} from '../../../../shared/infrastructure/prisma/prisma-error.util';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { NotFoundError } from '../../../../shared/domain/errors/domain-error';
 import { Materia } from '../../domain/entities/materia.entity';
 import { IMateriaRepository } from '../../domain/ports/outbound/materia.repository.port';
 
@@ -29,14 +33,34 @@ export class PrismaMateriaRepository implements IMateriaRepository {
   }
 
   async actualizar(materia: Materia): Promise<void> {
-    await this.prisma.materia.update({
-      where: { id: materia.id },
-      data: {
-        codigo: materia.codigo,
-        nombre: materia.nombre,
-        activa: materia.activa,
-      },
-    });
+    try {
+      await this.prisma.materia.update({
+        where: { id: materia.id },
+        data: {
+          codigo: materia.codigo,
+          nombre: materia.nombre,
+          activa: materia.activa,
+        },
+      });
+    } catch (error) {
+      mapUniqueViolation(
+        error,
+        `Ya existe una materia con código ${materia.codigo}.`,
+      );
+    }
+  }
+
+  async eliminar(id: string): Promise<void> {
+    const row = await this.prisma.materia.findUnique({ where: { id } });
+    if (!row) throw new NotFoundError(`No existe la materia: ${id}`);
+    try {
+      await this.prisma.materia.delete({ where: { id } });
+    } catch (error) {
+      mapForeignKeyViolation(
+        error,
+        'No se puede eliminar la materia porque tiene tutores, disponibilidades o tutorías asociadas; desactívala en su lugar.',
+      );
+    }
   }
 
   async obtenerPorId(id: string): Promise<Materia | null> {

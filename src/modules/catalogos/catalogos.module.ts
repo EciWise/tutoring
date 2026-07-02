@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../../auth/auth.module';
+import { ActualizarMateriaUseCase } from './application/use-cases/actualizar-materia.use-case';
 import { AsignarTutorMateriaUseCase } from './application/use-cases/asignar-tutor-materia.use-case';
 import { CambiarAutorizacionTutorMateriaUseCase } from './application/use-cases/cambiar-autorizacion-tutor-materia.use-case';
 import { CambiarEstadoMateriaUseCase } from './application/use-cases/cambiar-estado-materia.use-case';
 import { CrearFranjaUseCase } from './application/use-cases/crear-franja.use-case';
 import { CrearMateriaUseCase } from './application/use-cases/crear-materia.use-case';
+import { EliminarMateriaUseCase } from './application/use-cases/eliminar-materia.use-case';
 import { ActualizarSalaUseCase } from './application/use-cases/actualizar-sala.use-case';
 import { CrearSalaUseCase } from './application/use-cases/crear-sala.use-case';
 import { EliminarSalaUseCase } from './application/use-cases/eliminar-sala.use-case';
@@ -44,6 +46,8 @@ import { PrismaTutorMateriaRepository } from './infrastructure/persistence/prism
     CrearMateriaUseCase,
     ListarMateriasUseCase,
     CambiarEstadoMateriaUseCase,
+    ActualizarMateriaUseCase,
+    EliminarMateriaUseCase,
     CrearSalaUseCase,
     ListarSalasUseCase,
     ActualizarSalaUseCase,

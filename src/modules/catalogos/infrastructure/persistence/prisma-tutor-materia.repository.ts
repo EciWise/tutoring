@@ -73,6 +73,8 @@ export class PrismaTutorMateriaRepository
       id: row.materiaId,
       codigo: row.materia.codigo,
       nombre: row.materia.nombre,
+      tutorMateriaId: row.id,
+      autorizada: row.autorizada,
     }));
   }
 

@@ -7,7 +7,10 @@ import {
 } from '../../../catalogos/domain/ports/outbound/franja-horaria-consulta.port';
 import { ITutorMateriaConsultaPort } from '../../../catalogos/domain/ports/outbound/tutor-materia-consulta.port';
 import { Tutoria } from '../../../tutorias/domain/entities/tutoria.entity';
-import { ITutoriaRepository } from '../../../tutorias/domain/ports/outbound/tutoria.repository.port';
+import {
+  DatosPlantillaTutoria,
+  ITutoriaRepository,
+} from '../../../tutorias/domain/ports/outbound/tutoria.repository.port';
 import { DisponibilidadTutor } from '../../domain/entities/disponibilidad-tutor.entity';
 import { IDisponibilidadRepository } from '../../domain/ports/outbound/disponibilidad.repository.port';
 
@@ -88,6 +91,14 @@ export class InMemoryTutoriaRepository implements ITutoriaRepository {
   actualizarCuposFuturasPorDisponibilidad(
     _disponibilidadId: string,
     _cuposMaximos: number,
+    _desde: Date,
+  ): Promise<number> {
+    return Promise.resolve(0);
+  }
+
+  actualizarDatosFuturasPorDisponibilidad(
+    _disponibilidadId: string,
+    _datos: DatosPlantillaTutoria,
     _desde: Date,
   ): Promise<number> {
     return Promise.resolve(0);

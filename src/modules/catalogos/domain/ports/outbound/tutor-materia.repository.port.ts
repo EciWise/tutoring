@@ -7,6 +7,10 @@ export interface MateriaDelTutor {
   id: string;
   codigo: string;
   nombre: string;
+  /** Id de la asignación tutor-materia (para autorizar/desautorizar). */
+  tutorMateriaId: string;
+  /** Si la asignación está autorizada por el admin. */
+  autorizada: boolean;
 }
 
 /** Puerto de salida de persistencia de asignaciones tutor-materia. */

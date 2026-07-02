@@ -7,6 +7,7 @@ export const MATERIA_REPOSITORY = Symbol('MATERIA_REPOSITORY');
 export interface IMateriaRepository {
   guardar(materia: Materia): Promise<void>;
   actualizar(materia: Materia): Promise<void>;
+  eliminar(id: string): Promise<void>;
   obtenerPorId(id: string): Promise<Materia | null>;
   listar(soloActivas?: boolean): Promise<Materia[]>;
 }

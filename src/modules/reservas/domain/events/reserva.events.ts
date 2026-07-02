@@ -31,6 +31,44 @@ export class ReservaCancelada extends DomainEvent {
   }
 }
 
+/**
+ * El tutor (o admin) marcó la tutoría como REALIZADA. Dispara la asignación de
+ * puntos en gamificación (al tutor por dictarla y a cada participante por
+ * asistir). aggregateId = tutoriaId.
+ */
+export class TutoriaRealizada extends DomainEvent {
+  constructor(
+    public readonly tutoriaId: string,
+    public readonly tutorUserId: string,
+    public readonly participantesUserIds: string[],
+  ) {
+    super(tutoriaId);
+  }
+
+  public get nombre(): string {
+    return 'tutoria.realizada';
+  }
+}
+
+/**
+ * El estudiante calificó (1-5) la tutoría a su tutor (RF-13). Dispara puntos de
+ * `TutoriaCalificada` para el tutor en gamificación. aggregateId = tutoriaId.
+ */
+export class TutoriaCalificada extends DomainEvent {
+  constructor(
+    public readonly tutoriaId: string,
+    public readonly tutorUserId: string,
+    public readonly estudianteUserId: string,
+    public readonly calificacion: number,
+  ) {
+    super(tutoriaId);
+  }
+
+  public get nombre(): string {
+    return 'tutoria.calificada';
+  }
+}
+
 /** El tutor canceló la tutoría completa (RF-07); se liberó a todos los participantes. */
 export class TutoriaCanceladaPorTutor extends DomainEvent {
   constructor(

@@ -1,7 +1,15 @@
+import { Modalidad } from '../../../../../shared/domain/enums/modalidad.enum';
 import { Tutoria } from '../../entities/tutoria.entity';
 
 /** Token de inyección del repositorio de escritura de tutorías. */
 export const TUTORIA_REPOSITORY = Symbol('TUTORIA_REPOSITORY');
+
+/** Datos de la plantilla que se propagan a las tutorías futuras ya materializadas. */
+export interface DatosPlantillaTutoria {
+  materiaId: string;
+  modalidad: Modalidad;
+  salaId: string | null;
+}
 
 /**
  * Puerto de salida de escritura del agregado `Tutoria`. Es la API pública del
@@ -39,6 +47,19 @@ export interface ITutoriaRepository {
   actualizarCuposFuturasPorDisponibilidad(
     disponibilidadId: string,
     cuposMaximos: number,
+    desde: Date,
+  ): Promise<number>;
+  /**
+   * Propaga los datos de la plantilla (materia, modalidad, sala) a sus tutorías
+   * futuras PROGRAMADAS (`fecha >= desde`). La materialización es idempotente y
+   * no recrea slots ya existentes para `(tutor, franja, fecha)`, así que sin esto
+   * un cambio de materia/modalidad/sala en la plantilla dejaría las tutorías ya
+   * materializadas con los datos antiguos y el estudiante/admin vería una materia
+   * que no coincide con la que el tutor ofrece ahora.
+   */
+  actualizarDatosFuturasPorDisponibilidad(
+    disponibilidadId: string,
+    datos: DatosPlantillaTutoria,
     desde: Date,
   ): Promise<number>;
 }

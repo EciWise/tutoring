@@ -46,11 +46,30 @@ export class EditarDisponibilidadUseCase {
     exigirPropietario(disponibilidad.tutorUserId, input.actor);
     disponibilidad.editar(input.cambios);
     await this.repo.actualizar(disponibilidad);
+    const hoy = aUTCDate(new Date());
     if (input.cambios.cuposMaximos !== undefined) {
       await this.tutorias.actualizarCuposFuturasPorDisponibilidad(
         disponibilidad.id,
         disponibilidad.cuposMaximos,
-        aUTCDate(new Date()),
+        hoy,
+      );
+    }
+    // Si cambió la materia/modalidad/sala, propagarlo a las tutorías futuras ya
+    // materializadas; de lo contrario el estudiante/admin vería la materia que el
+    // tutor ofrecía antes y no la actual.
+    if (
+      input.cambios.materiaId !== undefined ||
+      input.cambios.modalidad !== undefined ||
+      input.cambios.salaId !== undefined
+    ) {
+      await this.tutorias.actualizarDatosFuturasPorDisponibilidad(
+        disponibilidad.id,
+        {
+          materiaId: disponibilidad.materiaId,
+          modalidad: disponibilidad.modalidad,
+          salaId: disponibilidad.salaId,
+        },
+        hoy,
       );
     }
     return disponibilidad;

@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { mapUniqueViolation } from '../../../../shared/infrastructure/prisma/prisma-error.util';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { Tutoria } from '../../domain/entities/tutoria.entity';
-import { ITutoriaRepository } from '../../domain/ports/outbound/tutoria.repository.port';
+import {
+  DatosPlantillaTutoria,
+  ITutoriaRepository,
+} from '../../domain/ports/outbound/tutoria.repository.port';
 
 /** Adapter Prisma de escritura del agregado `Tutoria`. */
 @Injectable()
@@ -52,6 +55,26 @@ export class PrismaTutoriaRepository implements ITutoriaRepository {
         cuposOcupados: { lte: cuposMaximos },
       },
       data: { cuposMaximos },
+    });
+    return count;
+  }
+
+  async actualizarDatosFuturasPorDisponibilidad(
+    disponibilidadId: string,
+    datos: DatosPlantillaTutoria,
+    desde: Date,
+  ): Promise<number> {
+    const { count } = await this.prisma.tutoria.updateMany({
+      where: {
+        disponibilidadId,
+        estado: 'PROGRAMADA',
+        fecha: { gte: desde },
+      },
+      data: {
+        materiaId: datos.materiaId,
+        modalidad: datos.modalidad,
+        salaId: datos.salaId,
+      },
     });
     return count;
   }

@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseBoolPipe,
   ParseUUIDPipe,
@@ -12,6 +15,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -20,9 +24,12 @@ import { Roles } from '../../../../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../../../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../../auth/guards/roles.guard';
 import { RolUsuario } from '../../../../../shared/domain/enums/rol-usuario.enum';
+import { ActualizarMateriaUseCase } from '../../../application/use-cases/actualizar-materia.use-case';
 import { CambiarEstadoMateriaUseCase } from '../../../application/use-cases/cambiar-estado-materia.use-case';
 import { CrearMateriaUseCase } from '../../../application/use-cases/crear-materia.use-case';
+import { EliminarMateriaUseCase } from '../../../application/use-cases/eliminar-materia.use-case';
 import { ListarMateriasUseCase } from '../../../application/use-cases/listar-materias.use-case';
+import { ActualizarMateriaDto } from '../dto/actualizar-materia.dto';
 import { MateriaResponseDto } from '../dto/catalogo-response.dto';
 import { CrearMateriaDto } from '../dto/crear-materia.dto';
 
@@ -35,6 +42,8 @@ export class MateriasController {
     private readonly crear: CrearMateriaUseCase,
     private readonly listar: ListarMateriasUseCase,
     private readonly cambiarEstado: CambiarEstadoMateriaUseCase,
+    private readonly actualizar: ActualizarMateriaUseCase,
+    private readonly eliminar: EliminarMateriaUseCase,
   ) {}
 
   @Post()
@@ -81,5 +90,27 @@ export class MateriasController {
     return MateriaResponseDto.desde(
       await this.cambiarEstado.ejecutar(id, false),
     );
+  }
+
+  @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles(RolUsuario.ADMIN)
+  @ApiOperation({ summary: 'Actualizar materia (solo admin)' })
+  @ApiOkResponse({ type: MateriaResponseDto })
+  async actualizarMateria(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ActualizarMateriaDto,
+  ): Promise<MateriaResponseDto> {
+    return MateriaResponseDto.desde(await this.actualizar.ejecutar(id, dto));
+  }
+
+  @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(RolUsuario.ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Eliminar materia (solo admin)' })
+  @ApiNoContentResponse()
+  async eliminarMateria(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    await this.eliminar.ejecutar(id);
   }
 }

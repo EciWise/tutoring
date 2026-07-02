@@ -33,6 +33,11 @@ export class InMemoryMateriaRepository implements IMateriaRepository {
     return Promise.resolve();
   }
 
+  eliminar(id: string): Promise<void> {
+    this.data.delete(id);
+    return Promise.resolve();
+  }
+
   obtenerPorId(id: string): Promise<Materia | null> {
     return Promise.resolve(this.data.get(id) ?? null);
   }
